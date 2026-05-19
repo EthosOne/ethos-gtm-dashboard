@@ -8,7 +8,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const WEBHOOK = "https://n8n-production-a158.up.railway.app/webhook/gtm-event";
+const WEBHOOK = "https://n8n-production-e3af.up.railway.app/webhook/gtm-event";
 
 const DEMO_TRIGGERS = [
   { pillar: "Operations",     status: "active",  event: "COO agent — Apple Note triaged: follow up with HR lead",          icon: "⚙️" },
