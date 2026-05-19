@@ -67,7 +67,8 @@ export default function Dashboard() {
     <main style={{ fontFamily: "system-ui, sans-serif", maxWidth: 900, margin: "0 auto", padding: "2rem 1rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
         <div>
-          <h1 style={{ fontSize: "1.6rem", fontWeight: 700, margin: 0 }}>Ethos One — GTM System</h1>
+          <img src="/ethos-wordmark.png" alt="Ethos One" style={{ height: 32, marginBottom: 8, display: "block" }} />
+          <h1 style={{ fontSize: "1.6rem", fontWeight: 700, margin: 0 }}>Company OS</h1>
           <p style={{ color: "#666", marginTop: 4 }}>Grand Workflow Dashboard</p>
         </div>
         <div style={{ textAlign: "right", fontSize: "0.85rem", color: "#999" }}>
