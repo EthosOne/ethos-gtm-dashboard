@@ -16,103 +16,267 @@ type Pillar = {
   updated_at: string;
 };
 
-const STATUS_STYLE: Record<string, string> = {
-  active:  "bg-green-100 text-green-800 border-green-300",
-  pending: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  error:   "bg-red-100 text-red-700 border-red-300",
+// Brand colours — Ethos One 2026
+const LIGHT = {
+  bg:           "#E3E1E8",
+  surface:      "#FFFFFF",
+  surfaceAlt:   "#F5F3EF",
+  border:       "rgba(54,53,65,0.1)",
+  text:         "#363541",
+  textMuted:    "#7A7888",
+  textFaint:    "#B0ADBD",
+  accent:       "#F4A988",
+  logoFilter:   "none",
+  toggleBg:     "#363541",
+  toggleText:   "#E3E1E8",
 };
 
-const PILLAR_ICON: Record<string, string> = {
-  "Operations":     "⚙️",
-  "Content":        "✍️",
-  "Intent/Signals": "🎯",
-  "Outbound":       "📧",
-  "Ads":            "📢",
-  "Optimisation":   "📊",
+const DARK = {
+  bg:           "#363541",
+  surface:      "#2A2935",
+  surfaceAlt:   "#1F1E2B",
+  border:       "rgba(227,225,232,0.08)",
+  text:         "#E3E1E8",
+  textMuted:    "#9D9BAA",
+  textFaint:    "#5C5A6A",
+  accent:       "#F4A988",
+  logoFilter:   "brightness(0) invert(1)",
+  toggleBg:     "#E3E1E8",
+  toggleText:   "#363541",
+};
+
+const PILLAR_META: Record<string, { icon: string; gradient: string }> = {
+  "Operations":     { icon: "⚙", gradient: "linear-gradient(135deg, #7A8A5C, #3F5847)" },
+  "Content":        { icon: "✦", gradient: "linear-gradient(135deg, #F4A988, #E37B5C)" },
+  "Intent/Signals": { icon: "◎", gradient: "linear-gradient(135deg, #B7CCD8, #7E9AA8)" },
+  "Outbound":       { icon: "→", gradient: "linear-gradient(135deg, #E8B66A, #E37B5C)" },
+  "Ads":            { icon: "▲", gradient: "linear-gradient(135deg, #F4A988, #C1573B)" },
+  "Optimisation":   { icon: "~", gradient: "linear-gradient(135deg, #7E9AA8, #5C6B85)" },
+};
+
+const STATUS_DOT: Record<string, string> = {
+  active:  "#7A8A5C",
+  pending: "#E8B66A",
+  error:   "#C1573B",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  active:  "Active",
+  pending: "Pending",
+  error:   "Error",
 };
 
 export default function Dashboard() {
-  const [pillars, setPillars] = useState<Pillar[]>([]);
+  const [pillars, setPillars]   = useState<Pillar[]>([]);
   const [lastRefresh, setLastRefresh] = useState<string>("");
+  const [dark, setDark]         = useState<boolean>(false);
+
+  // persist theme
+  useEffect(() => {
+    const saved = localStorage.getItem("ethos-theme");
+    if (saved === "dark") setDark(true);
+  }, []);
+
+  function toggleTheme() {
+    setDark(prev => {
+      localStorage.setItem("ethos-theme", !prev ? "dark" : "light");
+      return !prev;
+    });
+  }
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
-        .from("pillars")
-        .select("*")
-        .order("id");
+      const { data } = await supabase.from("pillars").select("*").order("id");
       if (data) {
         setPillars(data);
-        setLastRefresh(new Date().toLocaleTimeString());
+        setLastRefresh(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
       }
     }
-
     load();
-
-    // realtime subscription
     const channel = supabase
       .channel("pillars-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "pillars" }, () => {
-        load();
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "pillars" }, load)
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const active = pillars.filter(p => p.status === "active").length;
-  const errors = pillars.filter(p => p.status === "error").length;
+  const t = dark ? DARK : LIGHT;
+  const active  = pillars.filter(p => p.status === "active").length;
+  const errors  = pillars.filter(p => p.status === "error").length;
 
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", maxWidth: 900, margin: "0 auto", padding: "2rem 1rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
-        <div>
-          <img src="/ethos-wordmark.png" alt="Ethos One" style={{ height: 32, marginBottom: 8, display: "block" }} />
-          <h1 style={{ fontSize: "1.6rem", fontWeight: 700, margin: 0 }}>Company OS</h1>
-          <p style={{ color: "#666", marginTop: 4 }}>Grand Workflow Dashboard</p>
-        </div>
-        <div style={{ textAlign: "right", fontSize: "0.85rem", color: "#999" }}>
-          <div>{active}/6 active</div>
-          {errors > 0 && <div style={{ color: "#dc2626" }}>{errors} error{errors > 1 ? "s" : ""}</div>}
-          <div>Updated {lastRefresh}</div>
-        </div>
-      </div>
+    <main style={{
+      background: t.bg,
+      minHeight: "100vh",
+      transition: "background 0.3s ease",
+      padding: "0",
+    }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1rem" }}>
-        {pillars.map(p => (
-          <div
-            key={p.id}
-            style={{
-              border: "1px solid #e5e7eb",
-              borderRadius: 10,
-              padding: "1.2rem",
-              background: "#fff",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <span style={{ fontSize: "1.3rem" }}>{PILLAR_ICON[p.name] ?? "🔧"}</span>
-              <span
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  padding: "2px 10px",
-                  borderRadius: 999,
-                  border: "1px solid",
-                }}
-                className={STATUS_STYLE[p.status]}
-              >
-                {p.status.toUpperCase()}
-              </span>
-            </div>
-            <div style={{ fontWeight: 600, fontSize: "1rem" }}>{p.name}</div>
-            <div style={{ fontSize: "0.82rem", color: "#777", marginTop: 4 }}>
-              {p.last_event ?? "No events yet"}
-            </div>
-            <div style={{ fontSize: "0.75rem", color: "#bbb", marginTop: 6 }}>
-              {new Date(p.updated_at).toLocaleString()}
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2.5rem" }}>
+          <div>
+            <img
+              src="/ethos-wordmark.png"
+              alt="Ethos One"
+              style={{ height: 28, marginBottom: 10, display: "block", filter: t.logoFilter, transition: "filter 0.3s" }}
+            />
+            <h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0, color: t.text, letterSpacing: "-0.02em" }}>
+              Company OS
+            </h1>
+            <p style={{ color: t.textMuted, marginTop: 3, fontSize: "0.875rem", fontWeight: 400 }}>
+              GTM · 6 Pillars · Live
+            </p>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              style={{
+                background: t.toggleBg,
+                color: t.toggleText,
+                border: "none",
+                borderRadius: 999,
+                padding: "6px 14px",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                letterSpacing: "0.04em",
+                transition: "background 0.3s, color 0.3s",
+                fontFamily: "inherit",
+              }}
+            >
+              {dark ? "☀ Light" : "◑ Dark"}
+            </button>
+
+            {/* Stats */}
+            <div style={{ textAlign: "right", fontSize: "0.8rem" }}>
+              <div style={{ color: t.textMuted }}>
+                <span style={{ color: STATUS_DOT.active, fontWeight: 600 }}>{active}</span>
+                <span style={{ color: t.textFaint }}> / 6 active</span>
+              </div>
+              {errors > 0 && (
+                <div style={{ color: STATUS_DOT.error, fontWeight: 600 }}>{errors} error{errors > 1 ? "s" : ""}</div>
+              )}
+              <div style={{ color: t.textFaint, marginTop: 2 }}>Updated {lastRefresh || "—"}</div>
             </div>
           </div>
-        ))}
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: 1, background: t.border, marginBottom: "2rem" }} />
+
+        {/* Grid */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+          gap: "1rem",
+        }}>
+          {pillars.map(p => {
+            const meta = PILLAR_META[p.name] ?? { icon: "◆", gradient: "linear-gradient(135deg, #9D9BAA, #5C5A6A)" };
+            return (
+              <div
+                key={p.id}
+                style={{
+                  background: t.surface,
+                  border: `1px solid ${t.border}`,
+                  borderRadius: 14,
+                  padding: "1.25rem",
+                  transition: "background 0.3s, border 0.3s",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                }}
+              >
+                {/* Card header */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  {/* Icon orb */}
+                  <div style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 10,
+                    background: meta.gradient,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "1rem",
+                    color: "#fff",
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}>
+                    {meta.icon}
+                  </div>
+
+                  {/* Status badge */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: "50%",
+                      background: STATUS_DOT[p.status],
+                      flexShrink: 0,
+                    }} />
+                    <span style={{
+                      fontSize: "0.72rem",
+                      fontWeight: 600,
+                      color: STATUS_DOT[p.status],
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                    }}>
+                      {STATUS_LABEL[p.status]}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Name */}
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: "0.95rem", color: t.text, letterSpacing: "-0.01em" }}>
+                    {p.name}
+                  </div>
+                  <div style={{ fontSize: "0.82rem", color: t.textMuted, marginTop: 3, lineHeight: 1.4 }}>
+                    {p.last_event ?? "No events yet"}
+                  </div>
+                </div>
+
+                {/* Timestamp */}
+                <div style={{
+                  fontSize: "0.72rem",
+                  color: t.textFaint,
+                  borderTop: `1px solid ${t.border}`,
+                  paddingTop: 8,
+                  marginTop: "auto",
+                }}>
+                  {new Date(p.updated_at).toLocaleString("en-GB", {
+                    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          marginTop: "3rem",
+          paddingTop: "1.5rem",
+          borderTop: `1px solid ${t.border}`,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          fontSize: "0.75rem",
+          color: t.textFaint,
+        }}>
+          <span>Ethos One · Company OS · 2026</span>
+          <span style={{
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            background: "#7A8A5C",
+            display: "inline-block",
+            boxShadow: "0 0 6px #7A8A5C",
+          }} title="Realtime connected" />
+        </div>
       </div>
     </main>
   );
