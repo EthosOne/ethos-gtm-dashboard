@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import "bootstrap-icons/font/bootstrap-icons.css";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],

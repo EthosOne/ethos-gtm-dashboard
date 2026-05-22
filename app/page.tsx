@@ -46,12 +46,12 @@ const DARK = {
 };
 
 const PILLAR_META: Record<string, { icon: string; gradient: string }> = {
-  "Operations":     { icon: "⚙", gradient: "linear-gradient(135deg, #7A8A5C, #3F5847)" },
-  "Content":        { icon: "✦", gradient: "linear-gradient(135deg, #F4A988, #E37B5C)" },
-  "Intent/Signals": { icon: "◎", gradient: "linear-gradient(135deg, #B7CCD8, #7E9AA8)" },
-  "Outbound":       { icon: "→", gradient: "linear-gradient(135deg, #E8B66A, #E37B5C)" },
-  "Ads":            { icon: "▲", gradient: "linear-gradient(135deg, #F4A988, #C1573B)" },
-  "Optimisation":   { icon: "~", gradient: "linear-gradient(135deg, #7E9AA8, #5C6B85)" },
+  "Operations":     { icon: "bi-gear-fill",        gradient: "linear-gradient(135deg, #7A8A5C, #3F5847)" },
+  "Content":        { icon: "bi-pencil-square",     gradient: "linear-gradient(135deg, #F4A988, #E37B5C)" },
+  "Intent/Signals": { icon: "bi-broadcast",         gradient: "linear-gradient(135deg, #B7CCD8, #7E9AA8)" },
+  "Outbound":       { icon: "bi-envelope-fill",     gradient: "linear-gradient(135deg, #E8B66A, #E37B5C)" },
+  "Ads":            { icon: "bi-megaphone-fill",    gradient: "linear-gradient(135deg, #F4A988, #C1573B)" },
+  "Optimisation":   { icon: "bi-graph-up",          gradient: "linear-gradient(135deg, #7E9AA8, #5C6B85)" },
 };
 
 const STATUS_DOT: Record<string, string> = {
@@ -200,12 +200,11 @@ export default function Dashboard() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "1rem",
+                    fontSize: "1.1rem",
                     color: "#fff",
-                    fontWeight: 700,
                     flexShrink: 0,
                   }}>
-                    {meta.icon}
+                    <i className={meta.icon} />
                   </div>
 
                   {/* Status badge */}
