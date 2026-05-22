@@ -21,10 +21,10 @@ const LIGHT = {
   bg:           "#E3E1E8",
   surface:      "#FFFFFF",
   surfaceAlt:   "#F5F3EF",
-  border:       "rgba(54,53,65,0.1)",
+  border:       "rgba(54,53,65,0.12)",
   text:         "#363541",
-  textMuted:    "#7A7888",
-  textFaint:    "#B0ADBD",
+  textMuted:    "#4A4858",
+  textFaint:    "#7A7888",
   accent:       "#F4A988",
   logoFilter:   "none",
   toggleBg:     "#363541",
@@ -233,7 +233,7 @@ export default function Dashboard() {
                   <div style={{ fontWeight: 700, fontSize: "0.95rem", color: t.text, letterSpacing: "-0.01em" }}>
                     {p.name}
                   </div>
-                  <div style={{ fontSize: "0.82rem", color: t.textMuted, marginTop: 3, lineHeight: 1.4 }}>
+                  <div style={{ fontSize: "0.82rem", fontWeight: 500, color: t.textMuted, marginTop: 3, lineHeight: 1.4 }}>
                     {p.last_event ?? "No events yet"}
                   </div>
                 </div>
@@ -241,6 +241,7 @@ export default function Dashboard() {
                 {/* Timestamp */}
                 <div style={{
                   fontSize: "0.72rem",
+                  fontWeight: 500,
                   color: t.textFaint,
                   borderTop: `1px solid ${t.border}`,
                   paddingTop: 8,
