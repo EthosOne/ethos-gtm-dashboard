@@ -53,13 +53,16 @@ const ALL_STAGES = ["All", "Demo Booked", "Qualified", "Cold", "Nurture", "Close
 const PAGE_SIZE = 50;
 
 export default function LeadsPage() {
-  const [contacts, setContacts]     = useState<Contact[]>([]);
-  const [total, setTotal]           = useState(0);
+  const [contacts, setContacts]       = useState<Contact[]>([]);
+  const [total, setTotal]             = useState(0);
   const [stageCounts, setStageCounts] = useState<Record<string, number>>({});
-  const [stage, setStage]           = useState("All");
-  const [page, setPage]             = useState(0);
-  const [loading, setLoading]       = useState(true);
-  const [dark, setDark]             = useState(false);
+  const [stage, setStage]             = useState("All");
+  const [page, setPage]               = useState(0);
+  const [loading, setLoading]         = useState(true);
+  const [dark, setDark]               = useState(false);
+  const [search, setSearch]           = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [pageInput, setPageInput]     = useState("");
 
   useEffect(() => {
     const saved = localStorage.getItem("ethos-theme");
@@ -73,6 +76,17 @@ export default function LeadsPage() {
     });
   }
 
+  function applySearch() {
+    setSearch(searchInput.trim());
+    setPage(0);
+  }
+
+  function jumpToPage() {
+    const n = parseInt(pageInput) - 1;
+    if (!isNaN(n) && n >= 0 && n < totalPages) setPage(n);
+    setPageInput("");
+  }
+
   const loadContacts = useCallback(async () => {
     setLoading(true);
     let q = supabase
@@ -81,11 +95,16 @@ export default function LeadsPage() {
       .order("created_at", { ascending: false })
       .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
     if (stage !== "All") q = q.eq("stage", stage);
+    if (search) {
+      q = q.or(
+        `first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%,company.ilike.%${search}%,job_title.ilike.%${search}%,country.ilike.%${search}%`
+      );
+    }
     const { data, count } = await q;
     if (data) setContacts(data);
     if (count !== null) setTotal(count);
     setLoading(false);
-  }, [stage, page]);
+  }, [stage, page, search]);
 
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
@@ -143,6 +162,33 @@ export default function LeadsPage() {
               {dark ? "☀ Light" : "◑ Dark"}
             </button>
           </div>
+        </div>
+
+        {/* Search bar */}
+        <div style={{ display: "flex", gap: 8, marginBottom: "1rem" }}>
+          <input
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && applySearch()}
+            placeholder="Search by name, email, company, role, country…"
+            style={{
+              flex: 1, background: t.surface, border: `1px solid ${t.border}`,
+              borderRadius: 8, padding: "8px 14px", fontSize: "0.83rem",
+              color: t.text, outline: "none", fontFamily: "inherit",
+            }}
+          />
+          <button onClick={applySearch} style={{
+            background: t.accent, color: "#fff", border: "none",
+            borderRadius: 8, padding: "8px 18px", fontSize: "0.83rem",
+            fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+          }}>Search</button>
+          {search && (
+            <button onClick={() => { setSearch(""); setSearchInput(""); setPage(0); }} style={{
+              background: t.surface, color: t.textMuted, border: `1px solid ${t.border}`,
+              borderRadius: 8, padding: "8px 14px", fontSize: "0.83rem",
+              cursor: "pointer", fontFamily: "inherit",
+            }}>Clear</button>
+          )}
         </div>
 
         {/* Stage filter pills */}
@@ -251,23 +297,78 @@ export default function LeadsPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", flexWrap: "wrap", gap: 8 }}>
             <span style={{ color: t.textFaint, fontSize: "0.78rem" }}>
               {(page * PAGE_SIZE + 1).toLocaleString()}–{Math.min((page + 1) * PAGE_SIZE, total).toLocaleString()} of {total.toLocaleString()}
             </span>
-            <div style={{ display: "flex", gap: 6 }}>
+            <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+              {/* Prev */}
+              <button disabled={page === 0} onClick={() => setPage(0)} style={{
+                background: t.surface, border: `1px solid ${t.border}`,
+                color: page === 0 ? t.textFaint : t.text, borderRadius: 8,
+                padding: "6px 10px", fontSize: "0.8rem", cursor: page === 0 ? "not-allowed" : "pointer", fontFamily: "inherit",
+              }}>«</button>
               <button disabled={page === 0} onClick={() => setPage(p => p - 1)} style={{
                 background: t.surface, border: `1px solid ${t.border}`,
                 color: page === 0 ? t.textFaint : t.text, borderRadius: 8,
-                padding: "6px 14px", fontSize: "0.8rem", fontWeight: 500,
+                padding: "6px 12px", fontSize: "0.8rem", fontWeight: 500,
                 cursor: page === 0 ? "not-allowed" : "pointer", fontFamily: "inherit",
               }}>← Prev</button>
+
+              {/* Page numbers */}
+              {(() => {
+                const pages: number[] = [];
+                if (totalPages <= 7) {
+                  for (let i = 0; i < totalPages; i++) pages.push(i);
+                } else {
+                  pages.push(0);
+                  if (page > 2) pages.push(-1);
+                  for (let i = Math.max(1, page - 1); i <= Math.min(totalPages - 2, page + 1); i++) pages.push(i);
+                  if (page < totalPages - 3) pages.push(-1);
+                  pages.push(totalPages - 1);
+                }
+                return pages.map((p, i) => p === -1 ? (
+                  <span key={`dots-${i}`} style={{ color: t.textFaint, fontSize: "0.8rem", padding: "0 2px" }}>…</span>
+                ) : (
+                  <button key={p} onClick={() => setPage(p)} style={{
+                    background: p === page ? t.accent : t.surface,
+                    border: `1px solid ${p === page ? t.accent : t.border}`,
+                    color: p === page ? "#fff" : t.text,
+                    borderRadius: 8, padding: "6px 11px", fontSize: "0.8rem",
+                    fontWeight: p === page ? 700 : 500,
+                    cursor: "pointer", fontFamily: "inherit", minWidth: 34,
+                  }}>{p + 1}</button>
+                ));
+              })()}
+
+              {/* Next */}
               <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} style={{
                 background: t.surface, border: `1px solid ${t.border}`,
                 color: page >= totalPages - 1 ? t.textFaint : t.text, borderRadius: 8,
-                padding: "6px 14px", fontSize: "0.8rem", fontWeight: 500,
+                padding: "6px 12px", fontSize: "0.8rem", fontWeight: 500,
                 cursor: page >= totalPages - 1 ? "not-allowed" : "pointer", fontFamily: "inherit",
               }}>Next →</button>
+              <button disabled={page >= totalPages - 1} onClick={() => setPage(totalPages - 1)} style={{
+                background: t.surface, border: `1px solid ${t.border}`,
+                color: page >= totalPages - 1 ? t.textFaint : t.text, borderRadius: 8,
+                padding: "6px 10px", fontSize: "0.8rem", cursor: page >= totalPages - 1 ? "not-allowed" : "pointer", fontFamily: "inherit",
+              }}>»</button>
+
+              {/* Jump to page */}
+              <div style={{ display: "flex", gap: 4, alignItems: "center", marginLeft: 4 }}>
+                <span style={{ color: t.textFaint, fontSize: "0.75rem" }}>Go to</span>
+                <input
+                  value={pageInput}
+                  onChange={e => setPageInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && jumpToPage()}
+                  placeholder="…"
+                  style={{
+                    width: 48, background: t.surface, border: `1px solid ${t.border}`,
+                    borderRadius: 8, padding: "5px 8px", fontSize: "0.8rem",
+                    color: t.text, textAlign: "center", fontFamily: "inherit", outline: "none",
+                  }}
+                />
+              </div>
             </div>
           </div>
         )}
