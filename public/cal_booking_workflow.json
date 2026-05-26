@@ -1,0 +1,259 @@
+{
+  "name": "Ethos One — Cal.com Demo Booking Trigger",
+  "nodes": [
+    {
+      "id": "n1",
+      "name": "Webhook — Cal.com",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "cal-demo-booking",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cal-booking",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "n2",
+      "name": "Parse Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "// Cal.com sends the booking data inside payload.payload\nconst body = $input.first().json.body ?? $input.first().json;\nconst p = body.payload ?? body;\n\nconst attendee = (p.attendees ?? [])[0] ?? {};\nconst parts = (attendee.name ?? '').trim().split(' ');\nconst email = (attendee.email ?? '').toLowerCase().trim();\n\nreturn [{ json: {\n  email,\n  first_name: parts[0] ?? '',\n  last_name:  parts.slice(1).join(' '),\n  start_time: p.startTime,\n  timezone:   attendee.timeZone ?? '',\n  domain:     email.includes('@') ? email.split('@')[1] : '',\n  raw:        body\n}}];"
+      }
+    },
+    {
+      "id": "n3",
+      "name": "Upsert Contact",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "parameters": {
+        "operation": "upsert",
+        "schema": { "__rl": true, "value": "public", "mode": "list" },
+        "table":  { "__rl": true, "value": "contacts", "mode": "list" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email":          "={{ $json.email }}",
+            "first_name":     "={{ $json.first_name }}",
+            "last_name":      "={{ $json.last_name }}",
+            "stage":          "Demo Booked",
+            "source":         "cal.com",
+            "demo_booked_at": "={{ $now }}",
+            "demo_scheduled": "={{ $json.start_time }}",
+            "raw_payload":    "={{ JSON.stringify($json.raw) }}"
+          }
+        },
+        "conflictColumns": "email"
+      },
+      "credentials": {
+        "supabaseApi": { "id": "REPLACE_SUPABASE_CRED_ID", "name": "Supabase — Ethos One" }
+      }
+    },
+    {
+      "id": "n4",
+      "name": "Hunter.io — Enrich Domain",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.hunter.io/v2/domain-search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "domain",  "value": "={{ $('Parse Payload').item.json.domain }}" },
+            { "name": "api_key", "value": "REPLACE_HUNTER_API_KEY" },
+            { "name": "limit",   "value": "1" }
+          ]
+        },
+        "options": {
+          "response": { "response": { "neverError": true } }
+        }
+      }
+    },
+    {
+      "id": "n5",
+      "name": "Update Contact — Enrichment",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1120, 300],
+      "continueOnFail": true,
+      "parameters": {
+        "operation": "update",
+        "schema": { "__rl": true, "value": "public", "mode": "list" },
+        "table":  { "__rl": true, "value": "contacts", "mode": "list" },
+        "filters": {
+          "conditions": [{
+            "keyName": "email", "condition": "eq",
+            "keyValue": "={{ $('Parse Payload').item.json.email }}"
+          }]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "company":         "={{ $json.data?.organization ?? null }}",
+            "company_domain":  "={{ $json.data?.domain ?? null }}",
+            "company_website": "={{ $json.data?.domain ? 'https://' + $json.data.domain : null }}",
+            "country":         "={{ $json.data?.country ?? null }}"
+          }
+        }
+      },
+      "credentials": {
+        "supabaseApi": { "id": "REPLACE_SUPABASE_CRED_ID", "name": "Supabase — Ethos One" }
+      }
+    },
+    {
+      "id": "n6",
+      "name": "Update Pillar — Operations",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1340, 300],
+      "parameters": {
+        "operation": "upsert",
+        "schema": { "__rl": true, "value": "public", "mode": "list" },
+        "table":  { "__rl": true, "value": "pillars", "mode": "list" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "name":       "Operations",
+            "status":     "active",
+            "last_event": "={{ 'Demo booked · ' + $('Parse Payload').item.json.email }}",
+            "updated_at": "={{ $now }}"
+          }
+        },
+        "conflictColumns": "name"
+      },
+      "credentials": {
+        "supabaseApi": { "id": "REPLACE_SUPABASE_CRED_ID", "name": "Supabase — Ethos One" }
+      }
+    },
+    {
+      "id": "n7",
+      "name": "Log Event",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1340, 460],
+      "parameters": {
+        "operation": "insert",
+        "schema": { "__rl": true, "value": "public", "mode": "list" },
+        "table":  { "__rl": true, "value": "events", "mode": "list" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "pillar":  "Operations",
+            "type":    "demo_booked",
+            "payload": "={{ JSON.stringify({ email: $('Parse Payload').item.json.email, start_time: $('Parse Payload').item.json.start_time }) }}"
+          }
+        }
+      },
+      "credentials": {
+        "supabaseApi": { "id": "REPLACE_SUPABASE_CRED_ID", "name": "Supabase — Ethos One" }
+      }
+    },
+    {
+      "id": "n8",
+      "name": "Notify Joshua — Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1560, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/botREPLACE_BOT_TOKEN/sendMessage",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({\n  chat_id: 'REPLACE_JOSHUA_CHAT_ID',\n  text: '🗓 Demo booked!\\n\\n👤 ' + $('Parse Payload').item.json.first_name + ' ' + $('Parse Payload').item.json.last_name + '\\n📧 ' + $('Parse Payload').item.json.email + '\\n⏰ ' + new Date($('Parse Payload').item.json.start_time).toLocaleString('en-GB', {dateStyle:'medium',timeStyle:'short'}) + ' UK'\n}) }}"
+      }
+    },
+    {
+      "id": "n9",
+      "name": "Respond — 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1780, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true }"
+      }
+    },
+    {
+      "id": "n10",
+      "name": "Compute Wait Time",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 460],
+      "parameters": {
+        "jsCode": "// Send reminder 2 hours before demo\nconst start = new Date($('Parse Payload').item.json.start_time);\nconst target = new Date(start.getTime() - 2 * 60 * 60 * 1000);\nconst now = new Date();\nreturn [{ json: {\n  wait_until: (target > now ? target : now).toISOString(),\n  email:      $('Parse Payload').item.json.email,\n  first_name: $('Parse Payload').item.json.first_name,\n  start_time: $('Parse Payload').item.json.start_time\n}}];"
+      }
+    },
+    {
+      "id": "n11",
+      "name": "Wait — Pre-demo",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [2000, 460],
+      "webhookId": "cal-booking-predemo-wait",
+      "parameters": {
+        "resume": "specificTime",
+        "dateTime": "={{ $json.wait_until }}"
+      }
+    },
+    {
+      "id": "n12",
+      "name": "Pre-demo — Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2220, 460],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/botREPLACE_BOT_TOKEN/sendMessage",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({\n  chat_id: 'REPLACE_JOSHUA_CHAT_ID',\n  text: '⏰ Demo in 2 hours\\n\\n' + $json.first_name + ' · ' + $json.email + '\\n' + new Date($json.start_time).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'}) + ' today'\n}) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook — Cal.com": {
+      "main": [[{ "node": "Parse Payload", "type": "main", "index": 0 }]]
+    },
+    "Parse Payload": {
+      "main": [[{ "node": "Upsert Contact", "type": "main", "index": 0 }]]
+    },
+    "Upsert Contact": {
+      "main": [[{ "node": "Hunter.io — Enrich Domain", "type": "main", "index": 0 }]]
+    },
+    "Hunter.io — Enrich Domain": {
+      "main": [[{ "node": "Update Contact — Enrichment", "type": "main", "index": 0 }]]
+    },
+    "Update Contact — Enrichment": {
+      "main": [[
+        { "node": "Update Pillar — Operations", "type": "main", "index": 0 },
+        { "node": "Log Event", "type": "main", "index": 0 }
+      ]]
+    },
+    "Update Pillar — Operations": {
+      "main": [[{ "node": "Notify Joshua — Telegram", "type": "main", "index": 0 }]]
+    },
+    "Log Event": {
+      "main": [[{ "node": "Notify Joshua — Telegram", "type": "main", "index": 0 }]]
+    },
+    "Notify Joshua — Telegram": {
+      "main": [[
+        { "node": "Respond — 200 OK",     "type": "main", "index": 0 },
+        { "node": "Compute Wait Time", "type": "main", "index": 0 }
+      ]]
+    },
+    "Compute Wait Time": {
+      "main": [[{ "node": "Wait — Pre-demo", "type": "main", "index": 0 }]]
+    },
+    "Wait — Pre-demo": {
+      "main": [[{ "node": "Pre-demo — Reminder", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}
