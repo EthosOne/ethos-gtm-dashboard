@@ -130,6 +130,23 @@ export default function Dashboard() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
+            <div style={{ display: "flex", gap: 8 }}>
+              {/* Pipeline link */}
+              <a href="/leads" style={{
+                background: "none",
+                border: `1px solid ${t.border}`,
+                color: t.textMuted,
+                borderRadius: 999,
+                padding: "6px 14px",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                textDecoration: "none",
+                letterSpacing: "0.04em",
+                transition: "border-color 0.15s, color 0.15s",
+                fontFamily: "inherit",
+              }}>
+                Pipeline →
+              </a>
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
@@ -149,6 +166,7 @@ export default function Dashboard() {
             >
               {dark ? "☀ Light" : "◑ Dark"}
             </button>
+            </div>
 
             {/* Stats */}
             <div style={{ textAlign: "right", fontSize: "0.8rem" }}>
