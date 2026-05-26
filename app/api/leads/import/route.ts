@@ -77,12 +77,16 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    const seen = new Map<string, Record<string, string | null>>();
+    for (const c of contacts) seen.set(c.email as string, c);
+    const deduped = Array.from(seen.values());
+
     const BATCH = 500;
     let imported = 0;
     const errors: string[] = [];
 
-    for (let i = 0; i < contacts.length; i += BATCH) {
-      const batch = contacts.slice(i, i + BATCH);
+    for (let i = 0; i < deduped.length; i += BATCH) {
+      const batch = deduped.slice(i, i + BATCH);
       const { error } = await supabase
         .from("contacts")
         .upsert(batch, { onConflict: "email", ignoreDuplicates: false });
@@ -94,7 +98,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ imported, skipped: rows.length - contacts.length, errors });
+    return NextResponse.json({ imported, skipped: rows.length - contacts.length + (contacts.length - deduped.length), errors });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });
