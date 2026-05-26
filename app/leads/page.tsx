@@ -90,11 +90,14 @@ export default function LeadsPage() {
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
   useEffect(() => {
-    supabase.from("contacts").select("stage").then(({ data }) => {
-      if (!data) return;
-      const counts: Record<string, number> = {};
-      data.forEach(r => { counts[r.stage] = (counts[r.stage] || 0) + 1; });
-      setStageCounts(counts);
+    const stages = ["Demo Booked", "Qualified", "Cold", "Nurture", "Closed Won", "Closed Lost"];
+    Promise.all(
+      stages.map(s =>
+        supabase.from("contacts").select("*", { count: "exact", head: true }).eq("stage", s)
+          .then(({ count }) => [s, count ?? 0] as [string, number])
+      )
+    ).then(results => {
+      setStageCounts(Object.fromEntries(results));
     });
   }, []);
 
