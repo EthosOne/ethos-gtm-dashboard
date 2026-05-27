@@ -96,6 +96,7 @@ export default function LeadsPage() {
   async function updateTwlr(id: number, value: boolean) {
     setTwlrUpdating(id);
     setContacts(prev => prev.map(c => c.id === id ? { ...c, twlr_subscriber: value } : c));
+    setTwlrCount(prev => Math.max(0, prev + (value ? 1 : -1)));
     await fetch("/api/leads/update-twlr", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -282,7 +283,7 @@ export default function LeadsPage() {
             fontSize: "0.78rem", fontWeight: 700, fontFamily: "inherit",
             letterSpacing: "0.03em", transition: "all 0.15s",
           }}>
-            TWLR{twlrCount > 0 && <span style={{ marginLeft: 5, opacity: 0.65 }}>({twlrCount.toLocaleString()})</span>}{twlrOnly && " ✓"}
+            TWLR{(() => { const n = twlrOnly ? total : twlrCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{twlrOnly && " ✓"}
           </button>
         </div>
 
