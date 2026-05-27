@@ -64,6 +64,7 @@ export default function LeadsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [pageInput, setPageInput]     = useState("");
   const [updatingId, setUpdatingId]   = useState<number | null>(null);
+  const [savedId, setSavedId]         = useState<number | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("ethos-theme");
@@ -91,8 +92,17 @@ export default function LeadsPage() {
   async function updateStage(id: number, newStage: string) {
     setUpdatingId(id);
     setContacts(prev => prev.map(c => c.id === id ? { ...c, stage: newStage } : c));
-    const { error } = await supabase.from("contacts").update({ stage: newStage }).eq("id", id);
-    if (error) loadContacts();
+    const res = await fetch("/api/leads/update-stage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, stage: newStage }),
+    });
+    if (res.ok) {
+      setSavedId(id);
+      setTimeout(() => setSavedId(null), 1500);
+    } else {
+      loadContacts();
+    }
     setUpdatingId(null);
   }
 
@@ -293,23 +303,28 @@ export default function LeadsPage() {
                         {c.job_title ?? "—"}
                       </td>
                       <td style={{ padding: "11px 16px" }}>
-                        <select
-                          value={c.stage}
-                          disabled={updatingId === c.id}
-                          onChange={e => updateStage(c.id, e.target.value)}
-                          style={{
-                            background: sc.bg, color: sc.text,
-                            border: `1px solid ${sc.text}33`,
-                            borderRadius: 999, padding: "3px 10px",
-                            fontSize: "0.7rem", fontWeight: 600,
-                            cursor: "pointer", fontFamily: "inherit",
-                            outline: "none", opacity: updatingId === c.id ? 0.5 : 1,
-                          }}
-                        >
-                          {ALL_STAGES.filter(s => s !== "All").map(s => (
-                            <option key={s} value={s}>{s}</option>
-                          ))}
-                        </select>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <select
+                            value={c.stage}
+                            disabled={updatingId === c.id}
+                            onChange={e => updateStage(c.id, e.target.value)}
+                            style={{
+                              background: sc.bg, color: sc.text,
+                              border: `1px solid ${sc.text}33`,
+                              borderRadius: 999, padding: "3px 10px",
+                              fontSize: "0.7rem", fontWeight: 600,
+                              cursor: "pointer", fontFamily: "inherit",
+                              outline: "none", opacity: updatingId === c.id ? 0.5 : 1,
+                            }}
+                          >
+                            {ALL_STAGES.filter(s => s !== "All").map(s => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                          {savedId === c.id && (
+                            <span style={{ color: "#7A8A5C", fontSize: "0.75rem", fontWeight: 700 }}>✓</span>
+                          )}
+                        </div>
                       </td>
                       <td style={{ padding: "11px 16px", color: t.textMuted, fontSize: "0.82rem", whiteSpace: "nowrap" }}>
                         {[c.city, c.country].filter(Boolean).join(", ") || "—"}
