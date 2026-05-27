@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
   DndContext, DragEndEvent, DragOverEvent, DragStartEvent,
   PointerSensor, TouchSensor, useSensor, useSensors,
-  DragOverlay, closestCenter,
+  DragOverlay, closestCenter, useDroppable,
 } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -114,9 +114,10 @@ function SortableCard({ contact, t }: { contact: Contact; t: typeof LIGHT }) {
 }
 
 function StageColumn({
-  stage, contacts, count, t, isOver,
-}: { stage: string; contacts: Contact[]; count: number; t: typeof LIGHT; isOver: boolean }) {
+  stage, contacts, count, t,
+}: { stage: string; contacts: Contact[]; count: number; t: typeof LIGHT }) {
   const sc = STAGE_COLOR[stage] ?? STAGE_COLOR["Cold"];
+  const { setNodeRef, isOver } = useDroppable({ id: stage });
   return (
     <div style={{
       background: isOver ? `${sc.header}11` : t.surfaceAlt,
@@ -150,7 +151,7 @@ function StageColumn({
       </div>
 
       {/* Cards */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "10px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
+      <div ref={setNodeRef} style={{ flex: 1, overflowY: "auto", padding: "10px 10px", display: "flex", flexDirection: "column", gap: 6, minHeight: 80 }}>
         <SortableContext items={contacts.map(c => c.id)} strategy={verticalListSortingStrategy}>
           {contacts.map(c => <SortableCard key={c.id} contact={c} t={t} />)}
         </SortableContext>
@@ -161,7 +162,7 @@ function StageColumn({
         )}
         {contacts.length === 0 && (
           <div style={{ fontSize: "0.75rem", color: t.textFaint, textAlign: "center", padding: "20px 0" }}>
-            No leads
+            Drop here
           </div>
         )}
       </div>
@@ -217,39 +218,27 @@ export default function KanbanPage() {
     }
   }
 
+  function getStageFromId(id: string | number): string | null {
+    if (typeof id === "string" && STAGES.includes(id)) return id;
+    for (const stage of STAGES) {
+      if (contactsByStage[stage]?.find(c => c.id === id)) return stage;
+    }
+    return null;
+  }
+
   function handleDragOver(e: DragOverEvent) {
     const overId = e.over?.id;
-    if (!overId) { setOverStage(null); return; }
-    // Check if over a stage column (string) or a card (number)
-    if (typeof overId === "string" && STAGES.includes(overId)) {
-      setOverStage(overId);
-    } else {
-      for (const stage of STAGES) {
-        if (contactsByStage[stage]?.find(c => c.id === overId)) {
-          setOverStage(stage); return;
-        }
-      }
-    }
+    setOverStage(overId ? getStageFromId(overId) : null);
   }
 
   async function handleDragEnd(e: DragEndEvent) {
     setActiveContact(null);
     setOverStage(null);
-    const { active, over } = e;
+    const { over } = e;
     if (!over || !activeContact) return;
 
     const fromStage = activeContact.stage;
-    let toStage = fromStage;
-
-    if (typeof over.id === "string" && STAGES.includes(over.id)) {
-      toStage = over.id;
-    } else {
-      for (const stage of STAGES) {
-        if (contactsByStage[stage]?.find(c => c.id === over.id)) {
-          toStage = stage; break;
-        }
-      }
-    }
+    const toStage = getStageFromId(over.id) ?? fromStage;
 
     if (toStage === fromStage) return;
 
@@ -327,7 +316,6 @@ export default function KanbanPage() {
                   contacts={contactsByStage[stage] ?? []}
                   count={stageCounts[stage] ?? 0}
                   t={t}
-                  isOver={overStage === stage}
                 />
               ))}
             </div>
