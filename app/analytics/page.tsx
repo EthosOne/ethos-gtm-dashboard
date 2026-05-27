@@ -170,6 +170,8 @@ export default function AnalyticsPage() {
                 <div style={{ fontWeight: 700, fontSize: "0.9rem", color: t.text, marginBottom: "1.25rem" }}>
                   Leads by Stage
                 </div>
+                <div style={{ overflowX: "auto" }}>
+                <div style={{ minWidth: 420 }}>
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={barData} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
                     <XAxis
@@ -198,6 +200,8 @@ export default function AnalyticsPage() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+                </div>
+                </div>
               </div>
 
               {/* Pie chart */}
