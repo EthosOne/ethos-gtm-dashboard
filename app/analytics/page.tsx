@@ -44,6 +44,14 @@ export default function AnalyticsPage() {
   const [total, setTotal]             = useState(0);
   const [loading, setLoading]         = useState(true);
   const [dark, setDark]               = useState(false);
+  const [width, setWidth]             = useState(1200);
+
+  useEffect(() => {
+    setWidth(window.innerWidth);
+    const handler = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
 
   useEffect(() => {
     if (localStorage.getItem("ethos-theme") === "dark") setDark(true);
@@ -68,6 +76,7 @@ export default function AnalyticsPage() {
   }, []);
 
   const t = dark ? DARK : LIGHT;
+  const isMobile = width < 768;
 
   const barData = STAGES.map(s => ({ stage: s, count: stageCounts[s] ?? 0 }));
 
@@ -95,7 +104,7 @@ export default function AnalyticsPage() {
       <div style={{ maxWidth: 1040, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2.5rem" }}>
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "flex-start", gap: isMobile ? 16 : 0, marginBottom: "2.5rem" }}>
           <div>
             <img src="/ethos-wordmark.png" alt="Ethos One"
               style={{ height: 28, marginBottom: 10, display: "block", filter: t.logoFilter }} />
@@ -154,7 +163,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Charts row */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: "1rem", marginBottom: "2rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 380px", gap: "1rem", marginBottom: "2rem" }}>
 
               {/* Bar chart */}
               <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14, padding: "1.5rem" }}>
