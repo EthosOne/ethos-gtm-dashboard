@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 
@@ -69,6 +69,9 @@ export default function LeadsPage() {
   const [savedId, setSavedId]           = useState<number | null>(null);
   const [twlrOnly, setTwlrOnly]         = useState(false);
   const [twlrUpdating, setTwlrUpdating] = useState<number | null>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, scrollLeft: 0 });
 
   useEffect(() => {
     const saved = localStorage.getItem("ethos-theme");
@@ -306,7 +309,22 @@ export default function LeadsPage() {
               )}
             </div>
           ) : (
-            <div style={{ overflowX: "auto" }}>
+            <div
+              ref={tableRef}
+              style={{ overflowX: "auto", cursor: isDragging.current ? "grabbing" : "grab" }}
+              onMouseDown={e => {
+                if (!tableRef.current) return;
+                isDragging.current = true;
+                dragStart.current = { x: e.clientX, scrollLeft: tableRef.current.scrollLeft };
+                tableRef.current.style.cursor = "grabbing";
+              }}
+              onMouseMove={e => {
+                if (!isDragging.current || !tableRef.current) return;
+                tableRef.current.scrollLeft = dragStart.current.scrollLeft - (e.clientX - dragStart.current.x);
+              }}
+              onMouseUp={() => { isDragging.current = false; if (tableRef.current) tableRef.current.style.cursor = "grab"; }}
+              onMouseLeave={() => { isDragging.current = false; if (tableRef.current) tableRef.current.style.cursor = "grab"; }}
+            >
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
               <thead>
                 <tr style={{ background: t.surfaceAlt, borderBottom: `1px solid ${t.border}` }}>
@@ -315,6 +333,7 @@ export default function LeadsPage() {
                       padding: "10px 16px", textAlign: "left", fontWeight: 600,
                       color: t.textMuted, fontSize: "0.72rem", letterSpacing: "0.05em",
                       textTransform: "uppercase", whiteSpace: "nowrap",
+                      ...(col === "Name" ? { position: "sticky", left: 0, zIndex: 2, background: t.surfaceAlt } : {}),
                     }}>{col}</th>
                   ))}
                 </tr>
@@ -328,7 +347,7 @@ export default function LeadsPage() {
                       onMouseEnter={e => (e.currentTarget.style.background = t.surfaceAlt)}
                       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                     >
-                      <td style={{ padding: "11px 16px" }}>
+                      <td style={{ padding: "11px 16px", position: "sticky", left: 0, zIndex: 1, background: t.surface, boxShadow: "2px 0 6px rgba(0,0,0,0.08)" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ fontWeight: 600, color: t.text, fontSize: "0.85rem" }}>{name(c)}</span>
                           {c.twlr_subscriber && (
