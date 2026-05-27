@@ -25,6 +25,7 @@ type Contact = {
   demo_scheduled: string | null;
   icp_tier: string | null;
   created_at: string;
+  twlr_subscriber: boolean | null;
 };
 
 const LIGHT = {
@@ -63,8 +64,10 @@ export default function LeadsPage() {
   const [search, setSearch]           = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [pageInput, setPageInput]     = useState("");
-  const [updatingId, setUpdatingId]   = useState<number | null>(null);
-  const [savedId, setSavedId]         = useState<number | null>(null);
+  const [updatingId, setUpdatingId]     = useState<number | null>(null);
+  const [savedId, setSavedId]           = useState<number | null>(null);
+  const [twlrOnly, setTwlrOnly]         = useState(false);
+  const [twlrUpdating, setTwlrUpdating] = useState<number | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("ethos-theme");
@@ -87,6 +90,17 @@ export default function LeadsPage() {
     const n = parseInt(pageInput) - 1;
     if (!isNaN(n) && n >= 0 && n < totalPages) setPage(n);
     setPageInput("");
+  }
+
+  async function updateTwlr(id: number, value: boolean) {
+    setTwlrUpdating(id);
+    setContacts(prev => prev.map(c => c.id === id ? { ...c, twlr_subscriber: value } : c));
+    await fetch("/api/leads/update-twlr", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, twlr_subscriber: value }),
+    });
+    setTwlrUpdating(null);
   }
 
   async function updateStage(id: number, newStage: string) {
@@ -122,6 +136,7 @@ export default function LeadsPage() {
       .order("created_at", { ascending: false })
       .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
     if (stage !== "All") q = q.eq("stage", stage);
+    if (twlrOnly) q = q.eq("twlr_subscriber", true);
     if (search) {
       q = q.or(
         `first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%,company.ilike.%${search}%,job_title.ilike.%${search}%,country.ilike.%${search}%`
@@ -131,7 +146,7 @@ export default function LeadsPage() {
     if (data) setContacts(data);
     if (count !== null) setTotal(count);
     setLoading(false);
-  }, [stage, page, search]);
+  }, [stage, page, search, twlrOnly]);
 
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
@@ -256,6 +271,17 @@ export default function LeadsPage() {
               </button>
             );
           })}
+          {/* TWLR filter */}
+          <button onClick={() => { setTwlrOnly(v => !v); setPage(0); }} style={{
+            background: twlrOnly ? "#F4A98822" : t.surface,
+            border: `1px solid ${twlrOnly ? "#F4A98866" : t.border}`,
+            color: twlrOnly ? "#C1573B" : t.textMuted,
+            borderRadius: 999, padding: "5px 13px", cursor: "pointer",
+            fontSize: "0.78rem", fontWeight: 700, fontFamily: "inherit",
+            letterSpacing: "0.03em", transition: "all 0.15s",
+          }}>
+            TWLR{twlrOnly && " ✓"}
+          </button>
         </div>
 
         {/* Table */}
@@ -281,7 +307,7 @@ export default function LeadsPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
               <thead>
                 <tr style={{ background: t.surfaceAlt, borderBottom: `1px solid ${t.border}` }}>
-                  {["Name", "Company", "Role", "Stage", "Location", "Added"].map(col => (
+                  {["Name", "Company", "Role", "Stage", "Location", "Added", "TWLR"].map(col => (
                     <th key={col} style={{
                       padding: "10px 16px", textAlign: "left", fontWeight: 600,
                       color: t.textMuted, fontSize: "0.72rem", letterSpacing: "0.05em",
@@ -300,7 +326,16 @@ export default function LeadsPage() {
                       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                     >
                       <td style={{ padding: "11px 16px" }}>
-                        <div style={{ fontWeight: 600, color: t.text, fontSize: "0.85rem" }}>{name(c)}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontWeight: 600, color: t.text, fontSize: "0.85rem" }}>{name(c)}</span>
+                          {c.twlr_subscriber && (
+                            <span style={{
+                              background: "#F4A98822", color: "#C1573B", borderRadius: 999,
+                              padding: "1px 7px", fontSize: "0.62rem", fontWeight: 700,
+                              letterSpacing: "0.04em", whiteSpace: "nowrap",
+                            }}>TWLR</span>
+                          )}
+                        </div>
                         {c.linkedin_url && (
                           <a href={c.linkedin_url} target="_blank" rel="noreferrer"
                             style={{ fontSize: "0.7rem", color: t.textFaint, textDecoration: "none" }}>
@@ -346,6 +381,26 @@ export default function LeadsPage() {
                       </td>
                       <td style={{ padding: "11px 16px", color: t.textFaint, fontSize: "0.75rem", whiteSpace: "nowrap" }}>
                         {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                      </td>
+                      <td style={{ padding: "11px 16px", textAlign: "center" }}>
+                        <button
+                          disabled={twlrUpdating === c.id}
+                          onClick={() => updateTwlr(c.id, !c.twlr_subscriber)}
+                          title={c.twlr_subscriber ? "Remove TWLR" : "Add TWLR"}
+                          style={{
+                            background: c.twlr_subscriber ? "#F4A98822" : "transparent",
+                            color: c.twlr_subscriber ? "#C1573B" : t.textFaint,
+                            border: `1px solid ${c.twlr_subscriber ? "#F4A98866" : t.border}`,
+                            borderRadius: 999, padding: "2px 10px",
+                            fontSize: "0.68rem", fontWeight: 700,
+                            cursor: twlrUpdating === c.id ? "not-allowed" : "pointer",
+                            opacity: twlrUpdating === c.id ? 0.5 : 1,
+                            letterSpacing: "0.04em", fontFamily: "inherit",
+                            transition: "all 0.15s",
+                          }}
+                        >
+                          {c.twlr_subscriber ? "✓ TWLR" : "+ TWLR"}
+                        </button>
                       </td>
                     </tr>
                   );
