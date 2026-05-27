@@ -60,7 +60,7 @@ export default function SubscribePage() {
               You&apos;re in.
             </h2>
             <p style={{ color: t.textMuted, fontSize: "0.875rem", lineHeight: 1.6, margin: 0 }}>
-              Welcome to <strong>The Weekly Lead Report</strong>.<br />
+              Welcome to <strong>The Work-Life Reporter</strong>.<br />
               Your first issue lands soon — keep an eye on your inbox.
             </p>
           </div>
@@ -96,7 +96,7 @@ export default function SubscribePage() {
           </div>
 
           <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: t.text, margin: "0 0 8px", letterSpacing: "-0.03em", lineHeight: 1.2 }}>
-            The Weekly Lead Report
+            The Work-Life Reporter
           </h1>
           <p style={{ color: t.textMuted, fontSize: "0.875rem", lineHeight: 1.6, margin: "0 0 28px" }}>
             GTM insights, pipeline frameworks, and outbound tactics — delivered every week to founders and revenue teams.

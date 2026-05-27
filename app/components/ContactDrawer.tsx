@@ -236,7 +236,7 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: t.surfaceAlt, borderRadius: 10, border: `1px solid ${t.border}` }}>
             <div>
               <div style={{ fontSize: "0.83rem", fontWeight: 600, color: t.text }}>TWLR Subscriber</div>
-              <div style={{ fontSize: "0.72rem", color: t.textFaint }}>The Work Life Reporter newsletter</div>
+              <div style={{ fontSize: "0.72rem", color: t.textFaint }}>The Work-Life Reporter newsletter</div>
             </div>
             <button
               onClick={() => set("twlr_subscriber", !form.twlr_subscriber)}
