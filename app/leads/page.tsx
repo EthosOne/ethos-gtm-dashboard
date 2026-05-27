@@ -90,6 +90,7 @@ export default function LeadsPage() {
   }
 
   async function updateStage(id: number, newStage: string) {
+    const oldStage = contacts.find(c => c.id === id)?.stage;
     setUpdatingId(id);
     setContacts(prev => prev.map(c => c.id === id ? { ...c, stage: newStage } : c));
     const res = await fetch("/api/leads/update-stage", {
@@ -98,6 +99,13 @@ export default function LeadsPage() {
       body: JSON.stringify({ id, stage: newStage }),
     });
     if (res.ok) {
+      if (oldStage && oldStage !== newStage) {
+        setStageCounts(prev => ({
+          ...prev,
+          [oldStage]: Math.max(0, (prev[oldStage] ?? 0) - 1),
+          [newStage]: (prev[newStage] ?? 0) + 1,
+        }));
+      }
       setSavedId(id);
       setTimeout(() => setSavedId(null), 1500);
     } else {
