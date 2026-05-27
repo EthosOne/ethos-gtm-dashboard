@@ -201,7 +201,7 @@ export default function AnalyticsPage() {
               </div>
 
               {/* Pie chart */}
-              <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14, padding: "1.5rem" }}>
+              <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14, padding: "1.5rem", overflow: "hidden" }}>
                 <div style={{ fontWeight: 700, fontSize: "0.9rem", color: t.text, marginBottom: "1.25rem" }}>
                   Stage Distribution
                 </div>
