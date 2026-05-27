@@ -242,6 +242,7 @@ export default function AnalyticsPage() {
               <div style={{ padding: "1.25rem 1.5rem", borderBottom: `1px solid ${t.border}` }}>
                 <span style={{ fontWeight: 700, fontSize: "0.9rem", color: t.text }}>Stage Breakdown</span>
               </div>
+              <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
                 <thead>
                   <tr style={{ background: t.surfaceAlt }}>
@@ -288,6 +289,7 @@ export default function AnalyticsPage() {
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
 
           </>
