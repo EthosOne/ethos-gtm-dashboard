@@ -339,6 +339,7 @@ export default function LeadsPage() {
                             }}>TWLR</span>
                           )}
                         </div>
+                        <div style={{ fontSize: "0.72rem", color: t.textFaint, marginTop: 2 }}>{c.email}</div>
                         {c.linkedin_url && (
                           <a href={c.linkedin_url} target="_blank" rel="noreferrer"
                             style={{ fontSize: "0.7rem", color: t.textFaint, textDecoration: "none" }}>
