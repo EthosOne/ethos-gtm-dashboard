@@ -101,14 +101,61 @@ function KanbanCard({
 }
 
 function SortableCard({ contact, t }: { contact: Contact; t: typeof LIGHT }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: contact.id,
     data: { stage: contact.stage },
   });
   return (
-    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}
-      {...attributes} {...listeners}>
-      <KanbanCard contact={contact} t={t} isDragging={isDragging} />
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}>
+      <div style={{
+        background: t.surface,
+        border: `1px solid ${t.border}`,
+        borderRadius: 10,
+        padding: "10px 12px",
+        opacity: isDragging ? 0.4 : 1,
+        boxShadow: isDragging ? "none" : "0 1px 3px rgba(0,0,0,0.06)",
+        transition: "opacity 0.15s",
+        userSelect: "none",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
+          <div style={{ fontWeight: 600, fontSize: "0.82rem", color: t.text, lineHeight: 1.3, flex: 1 }}>
+            {cardName(contact)}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            {contact.twlr_subscriber && (
+              <span style={{
+                background: "#F4A98822", color: "#C1573B", borderRadius: 999,
+                padding: "1px 6px", fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.04em",
+              }}>TWLR</span>
+            )}
+            {/* Drag handle */}
+            <div
+              ref={setActivatorNodeRef}
+              {...attributes}
+              {...listeners}
+              style={{
+                cursor: "grab",
+                color: t.textFaint,
+                fontSize: "0.85rem",
+                lineHeight: 1,
+                padding: "2px 2px",
+                borderRadius: 4,
+                touchAction: "none",
+              }}
+              title="Drag to move"
+            >⠿</div>
+          </div>
+        </div>
+        {contact.company && (
+          <div style={{ fontSize: "0.72rem", color: t.textMuted, marginTop: 3 }}>{contact.company}</div>
+        )}
+        {contact.job_title && (
+          <div style={{ fontSize: "0.7rem", color: t.textFaint, marginTop: 2,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {contact.job_title}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -176,7 +223,7 @@ export default function KanbanPage() {
   const [loading, setLoading]                 = useState(true);
   const [dark, setDark]                       = useState(false);
   const [activeContact, setActiveContact]     = useState<Contact | null>(null);
-  const [overStage, setOverStage]             = useState<string | null>(null);
+  const [, setOverStage]             = useState<string | null>(null);
 
   useEffect(() => {
     if (localStorage.getItem("ethos-theme") === "dark") setDark(true);
