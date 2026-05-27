@@ -100,7 +100,7 @@ export default function AnalyticsPage() {
   ];
 
   return (
-    <main style={{ background: t.bg, minHeight: "100vh", transition: "background 0.3s", overflowX: "clip" }}>
+    <main style={{ background: t.bg, minHeight: "100vh", transition: "background 0.3s" }}>
       <div style={{ maxWidth: 1040, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 
         {/* Header */}
@@ -166,7 +166,7 @@ export default function AnalyticsPage() {
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 380px", gap: "1rem", marginBottom: "2rem" }}>
 
               {/* Bar chart */}
-              <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14, padding: "1.5rem" }}>
+              <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14, padding: "1.5rem", overflow: "hidden" }}>
                 <div style={{ fontWeight: 700, fontSize: "0.9rem", color: t.text, marginBottom: "1.25rem" }}>
                   Leads by Stage
                 </div>
