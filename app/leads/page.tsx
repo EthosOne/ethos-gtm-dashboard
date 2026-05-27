@@ -57,6 +57,7 @@ export default function LeadsPage() {
   const [contacts, setContacts]       = useState<Contact[]>([]);
   const [total, setTotal]             = useState(0);
   const [stageCounts, setStageCounts] = useState<Record<string, number>>({});
+  const [twlrCount, setTwlrCount]     = useState(0);
   const [stage, setStage]             = useState("All");
   const [page, setPage]               = useState(0);
   const [loading, setLoading]         = useState(true);
@@ -157,9 +158,10 @@ export default function LeadsPage() {
         supabase.from("contacts").select("*", { count: "exact", head: true }).eq("stage", s)
           .then(({ count }) => [s, count ?? 0] as [string, number])
       )
-    ).then(results => {
-      setStageCounts(Object.fromEntries(results));
-    });
+    ).then(results => setStageCounts(Object.fromEntries(results)));
+
+    supabase.from("contacts").select("*", { count: "exact", head: true }).eq("twlr_subscriber", true)
+      .then(({ count }) => setTwlrCount(count ?? 0));
   }, []);
 
   const t = dark ? DARK : LIGHT;
@@ -259,7 +261,7 @@ export default function LeadsPage() {
             const active = stage === s;
             const sc = STAGE_COLORS[s];
             return (
-              <button key={s} onClick={() => { setStage(s); setPage(0); }} style={{
+              <button key={s} onClick={() => { setStage(s); setTwlrOnly(false); setPage(0); }} style={{
                 background: active ? (sc?.bg ?? t.surface) : t.surface,
                 border: `1px solid ${active ? (sc ? sc.text : t.text) : t.border}`,
                 color: active ? (sc?.text ?? t.text) : t.textMuted,
@@ -271,8 +273,8 @@ export default function LeadsPage() {
               </button>
             );
           })}
-          {/* TWLR filter */}
-          <button onClick={() => { setTwlrOnly(v => !v); setPage(0); }} style={{
+          {/* TWLR filter — mutually exclusive with stage */}
+          <button onClick={() => { setTwlrOnly(v => !v); setStage("All"); setPage(0); }} style={{
             background: twlrOnly ? "#F4A98822" : t.surface,
             border: `1px solid ${twlrOnly ? "#F4A98866" : t.border}`,
             color: twlrOnly ? "#C1573B" : t.textMuted,
@@ -280,7 +282,7 @@ export default function LeadsPage() {
             fontSize: "0.78rem", fontWeight: 700, fontFamily: "inherit",
             letterSpacing: "0.03em", transition: "all 0.15s",
           }}>
-            TWLR{twlrOnly && " ✓"}
+            TWLR{twlrCount > 0 && <span style={{ marginLeft: 5, opacity: 0.65 }}>({twlrCount.toLocaleString()})</span>}{twlrOnly && " ✓"}
           </button>
         </div>
 
