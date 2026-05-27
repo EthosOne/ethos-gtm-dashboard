@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
+import ContactDrawer, { Contact as DrawerContact } from "../components/ContactDrawer";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -72,6 +73,9 @@ export default function LeadsPage() {
   const tableRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, scrollLeft: 0 });
+  const [drawerContact, setDrawerContact] = useState<DrawerContact | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerNew, setDrawerNew] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("ethos-theme");
@@ -211,10 +215,15 @@ export default function LeadsPage() {
             }}>
               Analytics
             </Link>
-            <Link href="/leads/import" style={{
-              background: t.accent, color: "#fff", textDecoration: "none",
+            <button onClick={() => { setDrawerNew(true); setDrawerContact(null); setDrawerOpen(true); }} style={{
+              background: t.accent, color: "#fff", border: "none",
               borderRadius: 999, padding: "7px 16px", fontSize: "0.78rem",
-              fontWeight: 600, letterSpacing: "0.02em", transition: "opacity 0.15s",
+              fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+            }}>+ New Contact</button>
+            <Link href="/leads/import" style={{
+              background: "none", border: `1px solid ${t.border}`, color: t.textMuted,
+              textDecoration: "none", borderRadius: 999, padding: "7px 16px",
+              fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.02em",
             }}>
               Import CSV
             </Link>
@@ -343,9 +352,15 @@ export default function LeadsPage() {
                   const sc = STAGE_COLORS[c.stage] ?? { bg: "#9D9BAA22", text: "#5A5870" };
                   return (
                     <tr key={c.id}
-                      style={{ borderBottom: i < contacts.length - 1 ? `1px solid ${t.border}` : "none" }}
+                      style={{ borderBottom: i < contacts.length - 1 ? `1px solid ${t.border}` : "none", cursor: "pointer" }}
                       onMouseEnter={e => (e.currentTarget.style.background = t.surfaceAlt)}
                       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                      onClick={e => {
+                        if ((e.target as HTMLElement).closest("select,button,a")) return;
+                        setDrawerContact(c as unknown as DrawerContact);
+                        setDrawerNew(false);
+                        setDrawerOpen(true);
+                      }}
                     >
                       <td style={{ padding: "11px 16px", position: "sticky", left: 0, zIndex: 1, background: t.surface, boxShadow: "2px 0 6px rgba(0,0,0,0.08)" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -517,6 +532,29 @@ export default function LeadsPage() {
           Ethos One · Company OS · 2026
         </div>
       </div>
+
+      {drawerOpen && (
+        <ContactDrawer
+          contact={drawerContact}
+          isNew={drawerNew}
+          dark={dark}
+          onClose={() => setDrawerOpen(false)}
+          onSaved={(saved) => {
+            if (drawerNew) {
+              setContacts(prev => [saved as unknown as Contact, ...prev]);
+              setTotal(prev => prev + 1);
+            } else {
+              setContacts(prev => prev.map(c => c.id === saved.id ? { ...c, ...saved } as Contact : c));
+            }
+            setDrawerOpen(false);
+          }}
+          onDeleted={(id) => {
+            setContacts(prev => prev.filter(c => c.id !== id));
+            setTotal(prev => prev - 1);
+            setDrawerOpen(false);
+          }}
+        />
+      )}
     </main>
   );
 }

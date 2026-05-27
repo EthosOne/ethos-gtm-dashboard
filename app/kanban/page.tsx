@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
+import ContactDrawer, { Contact as DrawerContact } from "../components/ContactDrawer";
 import {
   DndContext, DragEndEvent, DragOverEvent, DragStartEvent,
   PointerSensor, TouchSensor, useSensor, useSensors,
@@ -100,23 +101,26 @@ function KanbanCard({
   );
 }
 
-function SortableCard({ contact, t }: { contact: Contact; t: typeof LIGHT }) {
+function SortableCard({ contact, t, onClick }: { contact: Contact; t: typeof LIGHT; onClick: () => void }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: contact.id,
     data: { stage: contact.stage },
   });
   return (
     <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}>
-      <div style={{
-        background: t.surface,
-        border: `1px solid ${t.border}`,
-        borderRadius: 10,
-        padding: "10px 12px",
-        opacity: isDragging ? 0.4 : 1,
-        boxShadow: isDragging ? "none" : "0 1px 3px rgba(0,0,0,0.06)",
-        transition: "opacity 0.15s",
-        userSelect: "none",
-      }}>
+      <div
+        onClick={() => { if (!isDragging) onClick(); }}
+        style={{
+          background: t.surface,
+          border: `1px solid ${t.border}`,
+          borderRadius: 10,
+          padding: "10px 12px",
+          opacity: isDragging ? 0.4 : 1,
+          boxShadow: isDragging ? "none" : "0 1px 3px rgba(0,0,0,0.06)",
+          transition: "opacity 0.15s",
+          userSelect: "none",
+          cursor: "pointer",
+        }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
           <div style={{ fontWeight: 600, fontSize: "0.82rem", color: t.text, lineHeight: 1.3, flex: 1 }}>
             {cardName(contact)}
@@ -161,8 +165,8 @@ function SortableCard({ contact, t }: { contact: Contact; t: typeof LIGHT }) {
 }
 
 function StageColumn({
-  stage, contacts, count, t,
-}: { stage: string; contacts: Contact[]; count: number; t: typeof LIGHT }) {
+  stage, contacts, count, t, onCardClick,
+}: { stage: string; contacts: Contact[]; count: number; t: typeof LIGHT; onCardClick: (c: Contact) => void }) {
   const sc = STAGE_COLOR[stage] ?? STAGE_COLOR["Cold"];
   const { setNodeRef, isOver } = useDroppable({ id: stage });
   return (
@@ -200,7 +204,7 @@ function StageColumn({
       {/* Cards */}
       <div ref={setNodeRef} style={{ flex: 1, overflowY: "auto", padding: "10px 10px", display: "flex", flexDirection: "column", gap: 6, minHeight: 80 }}>
         <SortableContext items={contacts.map(c => c.id)} strategy={verticalListSortingStrategy}>
-          {contacts.map(c => <SortableCard key={c.id} contact={c} t={t} />)}
+          {contacts.map(c => <SortableCard key={c.id} contact={c} t={t} onClick={() => onCardClick(c)} />)}
         </SortableContext>
         {count > CARDS_PER_STAGE && (
           <div style={{ fontSize: "0.72rem", color: t.textFaint, textAlign: "center", padding: "6px 0" }}>
@@ -223,7 +227,9 @@ export default function KanbanPage() {
   const [loading, setLoading]                 = useState(true);
   const [dark, setDark]                       = useState(false);
   const [activeContact, setActiveContact]     = useState<Contact | null>(null);
-  const [, setOverStage]             = useState<string | null>(null);
+  const [, setOverStage]                      = useState<string | null>(null);
+  const [drawerContact, setDrawerContact]     = useState<DrawerContact | null>(null);
+  const [drawerOpen, setDrawerOpen]           = useState(false);
 
   useEffect(() => {
     if (localStorage.getItem("ethos-theme") === "dark") setDark(true);
@@ -237,7 +243,7 @@ export default function KanbanPage() {
     await Promise.all(STAGES.map(async stage => {
       const { data, count } = await supabase
         .from("contacts")
-        .select("id,email,first_name,last_name,company,job_title,stage", { count: "exact" })
+        .select("id,email,first_name,last_name,company,company_domain,job_title,linkedin_url,city,country,stage,twlr_subscriber,notes,icp_score,icp_tier,created_at,updated_at,demo_scheduled,source", { count: "exact" })
         .eq("stage", stage)
         .order("created_at", { ascending: false })
         .limit(CARDS_PER_STAGE);
@@ -368,6 +374,7 @@ export default function KanbanPage() {
                   contacts={contactsByStage[stage] ?? []}
                   count={stageCounts[stage] ?? 0}
                   t={t}
+                  onCardClick={(c) => { setDrawerContact(c as unknown as DrawerContact); setDrawerOpen(true); }}
                 />
               ))}
             </div>
@@ -387,6 +394,40 @@ export default function KanbanPage() {
           <span style={{ fontSize: "0.7rem" }}>Showing up to {CARDS_PER_STAGE} per column · drag to move</span>
         </div>
       </div>
+
+      {drawerOpen && (
+        <ContactDrawer
+          contact={drawerContact}
+          dark={dark}
+          onClose={() => setDrawerOpen(false)}
+          onSaved={(saved) => {
+            setContactsByStage(prev => {
+              const updated: Record<string, Contact[]> = {};
+              for (const s of STAGES) {
+                updated[s] = (prev[s] ?? []).map(c =>
+                  c.id === saved.id ? { ...c, ...saved } as Contact : c
+                );
+              }
+              return updated;
+            });
+            setDrawerOpen(false);
+          }}
+          onDeleted={(id) => {
+            setContactsByStage(prev => {
+              const updated: Record<string, Contact[]> = {};
+              for (const s of STAGES) {
+                updated[s] = (prev[s] ?? []).filter(c => c.id !== id);
+              }
+              return updated;
+            });
+            setStageCounts(prev => {
+              const stage = drawerContact?.stage ?? "";
+              return { ...prev, [stage]: Math.max(0, (prev[stage] ?? 0) - 1) };
+            });
+            setDrawerOpen(false);
+          }}
+        />
+      )}
     </main>
   );
 }
