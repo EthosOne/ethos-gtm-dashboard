@@ -167,14 +167,18 @@ export default function ImportPage() {
           <div>
             <img src="/ethos-wordmark.png" alt="Ethos One"
               style={{ height: 26, marginBottom: 8, display: "block", filter: t.logoFilter, transition: "filter 0.3s" }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Link href="/leads" style={{ color: t.textFaint, textDecoration: "none", fontSize: "0.8rem", fontWeight: 500 }}>
-                ← Pipeline
-              </Link>
-              <span style={{ color: t.textFaint, fontSize: "0.8rem" }}>/</span>
-              <span style={{ fontSize: "1.1rem", fontWeight: 700, color: t.text, letterSpacing: "-0.02em" }}>Import CSV</span>
-            </div>
+            <h1 style={{ fontSize: "1.1rem", fontWeight: 700, margin: 0, color: t.text, letterSpacing: "-0.02em" }}>
+              Import CSV
+            </h1>
           </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <Link href="/leads" style={{
+              background: "none", border: `1px solid ${t.border}`, color: t.textMuted,
+              textDecoration: "none", borderRadius: 999, padding: "6px 14px",
+              fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.04em",
+            }}>
+              ← Pipeline
+            </Link>
           <button onClick={toggleTheme} style={{
             background: t.toggleBg, color: t.toggleText, border: "none",
             borderRadius: 999, padding: "6px 14px", fontSize: "0.78rem",
@@ -183,6 +187,7 @@ export default function ImportPage() {
           }}>
             {dark ? "☀ Light" : "◑ Dark"}
           </button>
+          </div>
         </div>
 
         {/* Drop zone */}
