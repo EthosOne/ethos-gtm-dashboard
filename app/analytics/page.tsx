@@ -93,10 +93,10 @@ export default function AnalyticsPage() {
   const wonRate      = total > 0 ? (closedWon  / total * 100).toFixed(1) : "—";
 
   const kpis = [
-    { label: "Total Leads",    value: fmt(total),         sub: "in pipeline",       color: t.accent },
-    { label: "Engaged",        value: `${engageRate}%`,   sub: `${fmt(engaged)} contacts`, color: "#7A8A5C" },
-    { label: "Demo Booked",    value: `${bookedRate}%`,   sub: `${fmt(demoBooked)} contacts`, color: "#E8B66A" },
-    { label: "Closed Won",     value: `${wonRate}%`,      sub: `${fmt(closedWon)} contacts`, color: "#3F5847" },
+    { label: "Total Leads",  value: fmt(total),         sub: "in pipeline",                              hint: "",                                          color: t.accent  },
+    { label: "Engaged",      value: `${engageRate}%`,   sub: `${fmt(engaged)} contacts`,                 hint: "Qualified + Demo Booked + Closed Won",      color: "#7A8A5C" },
+    { label: "Demo Booked",  value: `${bookedRate}%`,   sub: `${fmt(demoBooked)} contacts`,              hint: "% of total pipeline that booked a demo",    color: "#E8B66A" },
+    { label: "Closed Won",   value: `${wonRate}%`,      sub: `${fmt(closedWon)} contacts`,               hint: "% of total pipeline converted to clients",  color: "#3F5847" },
   ];
 
   return (
@@ -158,6 +158,11 @@ export default function AnalyticsPage() {
                   <div style={{ fontSize: "0.78rem", color: t.textMuted, marginTop: 6 }}>
                     {k.sub}
                   </div>
+                  {k.hint && (
+                    <div style={{ fontSize: "0.68rem", color: t.textFaint, marginTop: 4, fontStyle: "italic" }}>
+                      {k.hint}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -174,9 +179,13 @@ export default function AnalyticsPage() {
                   <BarChart width={480} height={260} data={barData} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
                     <XAxis
                       dataKey="stage"
-                      tick={{ fontSize: 11, fill: t.textMuted }}
+                      tick={{ fontSize: 10, fill: t.textMuted }}
                       tickLine={false}
                       axisLine={false}
+                      angle={-25}
+                      textAnchor="end"
+                      height={50}
+                      interval={0}
                     />
                     <YAxis
                       tick={{ fontSize: 11, fill: t.textFaint }}
