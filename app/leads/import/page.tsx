@@ -213,7 +213,7 @@ export default function ImportPage() {
             <div style={{
               background: t.surface, borderRadius: 12, border: `1px solid ${t.border}`,
               padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center",
-              marginBottom: "1.25rem",
+              flexWrap: "wrap", gap: 10, marginBottom: "1.25rem",
             }}>
               <div>
                 <div style={{ fontWeight: 600, color: t.text, fontSize: "0.9rem" }}>
@@ -241,7 +241,7 @@ export default function ImportPage() {
               <div style={{ fontWeight: 700, color: t.text, marginBottom: 14, fontSize: "0.9rem" }}>
                 Column Mapping
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "10px" }}>
                 {TARGET_FIELDS.map(f => (
                   <div key={f.key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <label style={{ fontSize: "0.8rem", color: t.textMuted, width: 130, flexShrink: 0, fontWeight: 500 }}>

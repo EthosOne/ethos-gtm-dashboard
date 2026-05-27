@@ -132,7 +132,7 @@ export default function LeadsPage() {
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem", flexWrap: "wrap", gap: 12 }}>
           <div>
             <img src="/ethos-wordmark.png" alt="Ethos One"
               style={{ height: 26, marginBottom: 8, display: "block", filter: t.logoFilter, transition: "filter 0.3s" }} />
@@ -145,7 +145,7 @@ export default function LeadsPage() {
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <Link href="/analytics" style={{
               background: "none", border: `1px solid ${t.border}`, color: t.textMuted,
               textDecoration: "none", borderRadius: 999, padding: "6px 14px",
@@ -240,6 +240,7 @@ export default function LeadsPage() {
               )}
             </div>
           ) : (
+            <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
               <thead>
                 <tr style={{ background: t.surfaceAlt, borderBottom: `1px solid ${t.border}` }}>
@@ -299,6 +300,7 @@ export default function LeadsPage() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 

@@ -114,7 +114,7 @@ export default function Dashboard() {
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2.5rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2.5rem", flexWrap: "wrap", gap: 16 }}>
           <div>
             <img
               src="/ethos-wordmark.png"
