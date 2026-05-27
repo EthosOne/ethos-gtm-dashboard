@@ -176,6 +176,13 @@ export default function LeadsPage() {
             }}>
               ← Home
             </Link>
+            <Link href="/kanban" style={{
+              background: "none", border: `1px solid ${t.border}`, color: t.textMuted,
+              textDecoration: "none", borderRadius: 999, padding: "6px 14px",
+              fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.04em",
+            }}>
+              Kanban
+            </Link>
             <Link href="/analytics" style={{
               background: "none", border: `1px solid ${t.border}`, color: t.textMuted,
               textDecoration: "none", borderRadius: 999, padding: "6px 14px",

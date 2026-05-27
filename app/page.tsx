@@ -131,6 +131,21 @@ export default function Dashboard() {
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
             <div style={{ display: "flex", gap: 8 }}>
+              {/* Kanban link */}
+              <a href="/kanban" style={{
+                background: "none",
+                border: `1px solid ${t.border}`,
+                color: t.textMuted,
+                borderRadius: 999,
+                padding: "6px 14px",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                textDecoration: "none",
+                letterSpacing: "0.04em",
+                fontFamily: "inherit",
+              }}>
+                Kanban →
+              </a>
               {/* Analytics link */}
               <a href="/analytics" style={{
                 background: "none",
