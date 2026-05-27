@@ -146,6 +146,13 @@ export default function LeadsPage() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Link href="/analytics" style={{
+              background: "none", border: `1px solid ${t.border}`, color: t.textMuted,
+              textDecoration: "none", borderRadius: 999, padding: "6px 14px",
+              fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.04em",
+            }}>
+              Analytics
+            </Link>
             <Link href="/leads/import" style={{
               background: t.accent, color: "#fff", textDecoration: "none",
               borderRadius: 999, padding: "7px 16px", fontSize: "0.78rem",
