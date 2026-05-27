@@ -207,7 +207,7 @@ export default function KanbanPage() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } })
   );
 
   function handleDragStart(e: DragStartEvent) {
@@ -265,7 +265,7 @@ export default function KanbanPage() {
   const t = dark ? DARK : LIGHT;
 
   return (
-    <main style={{ background: t.bg, minHeight: "100vh", transition: "background 0.3s", overflow: "hidden" }}>
+    <main style={{ background: t.bg, minHeight: "100vh", transition: "background 0.3s", overflowX: "hidden" }}>
       <div style={{ maxWidth: "100%", padding: "2rem 1.5rem" }}>
 
         {/* Header */}
