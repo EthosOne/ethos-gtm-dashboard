@@ -100,7 +100,7 @@ export default function AnalyticsPage() {
   ];
 
   return (
-    <main style={{ background: t.bg, minHeight: "100vh", transition: "background 0.3s" }}>
+    <main style={{ background: t.bg, minHeight: "100vh", transition: "background 0.3s", overflowX: "clip" }}>
       <div style={{ maxWidth: 1040, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 
         {/* Header */}
