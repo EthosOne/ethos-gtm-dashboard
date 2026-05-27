@@ -63,6 +63,7 @@ export default function LeadsPage() {
   const [search, setSearch]           = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [pageInput, setPageInput]     = useState("");
+  const [updatingId, setUpdatingId]   = useState<number | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("ethos-theme");
@@ -85,6 +86,14 @@ export default function LeadsPage() {
     const n = parseInt(pageInput) - 1;
     if (!isNaN(n) && n >= 0 && n < totalPages) setPage(n);
     setPageInput("");
+  }
+
+  async function updateStage(id: number, newStage: string) {
+    setUpdatingId(id);
+    setContacts(prev => prev.map(c => c.id === id ? { ...c, stage: newStage } : c));
+    const { error } = await supabase.from("contacts").update({ stage: newStage }).eq("id", id);
+    if (error) loadContacts();
+    setUpdatingId(null);
   }
 
   const loadContacts = useCallback(async () => {
@@ -284,13 +293,23 @@ export default function LeadsPage() {
                         {c.job_title ?? "—"}
                       </td>
                       <td style={{ padding: "11px 16px" }}>
-                        <span style={{
-                          background: sc.bg, color: sc.text,
-                          borderRadius: 999, padding: "3px 10px",
-                          fontSize: "0.7rem", fontWeight: 600, whiteSpace: "nowrap",
-                        }}>
-                          {c.stage}
-                        </span>
+                        <select
+                          value={c.stage}
+                          disabled={updatingId === c.id}
+                          onChange={e => updateStage(c.id, e.target.value)}
+                          style={{
+                            background: sc.bg, color: sc.text,
+                            border: `1px solid ${sc.text}33`,
+                            borderRadius: 999, padding: "3px 10px",
+                            fontSize: "0.7rem", fontWeight: 600,
+                            cursor: "pointer", fontFamily: "inherit",
+                            outline: "none", opacity: updatingId === c.id ? 0.5 : 1,
+                          }}
+                        >
+                          {ALL_STAGES.filter(s => s !== "All").map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
                       </td>
                       <td style={{ padding: "11px 16px", color: t.textMuted, fontSize: "0.82rem", whiteSpace: "nowrap" }}>
                         {[c.city, c.country].filter(Boolean).join(", ") || "—"}
