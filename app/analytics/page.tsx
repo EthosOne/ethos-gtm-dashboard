@@ -170,10 +170,8 @@ export default function AnalyticsPage() {
                 <div style={{ fontWeight: 700, fontSize: "0.9rem", color: t.text, marginBottom: "1.25rem" }}>
                   Leads by Stage
                 </div>
-                <div style={{ overflowX: "auto" }}>
-                <div style={{ minWidth: 420 }}>
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={barData} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
+                <div style={{ overflowX: "auto", width: "100%" }}>
+                  <BarChart width={480} height={260} data={barData} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
                     <XAxis
                       dataKey="stage"
                       tick={{ fontSize: 11, fill: t.textMuted }}
@@ -184,14 +182,14 @@ export default function AnalyticsPage() {
                       tick={{ fontSize: 11, fill: t.textFaint }}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v}
+                      tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v)}
                     />
                     <Tooltip
                       contentStyle={{
                         background: t.surface, border: `1px solid ${t.border}`,
                         borderRadius: 8, fontSize: 12, color: t.text,
                       }}
-                      cursor={{ fill: `${t.border}` }}
+                      cursor={{ fill: t.border }}
                     />
                     <Bar dataKey="count" radius={[6, 6, 0, 0]}>
                       {barData.map(entry => (
@@ -199,8 +197,6 @@ export default function AnalyticsPage() {
                       ))}
                     </Bar>
                   </BarChart>
-                </ResponsiveContainer>
-                </div>
                 </div>
               </div>
 
