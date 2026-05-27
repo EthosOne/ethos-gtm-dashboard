@@ -189,7 +189,7 @@ export default function KanbanPage() {
     await Promise.all(STAGES.map(async stage => {
       const { data, count } = await supabase
         .from("contacts")
-        .select("id,email,first_name,last_name,company,job_title,stage,twlr_subscriber", { count: "exact" })
+        .select("id,email,first_name,last_name,company,job_title,stage", { count: "exact" })
         .eq("stage", stage)
         .order("created_at", { ascending: false })
         .limit(CARDS_PER_STAGE);
