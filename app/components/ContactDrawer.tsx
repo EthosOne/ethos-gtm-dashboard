@@ -51,7 +51,7 @@ const DARK = {
 const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_scheduled"> = {
   email: "", first_name: "", last_name: "", company: "", company_domain: "",
   job_title: "", linkedin_url: "", city: "", country: "", stage: "Cold",
-  twlr_subscriber: false, outreach_status: "active", notes: "", icp_score: null, icp_tier: null,
+  twlr_subscriber: false, outreach_status: "active", list_name: null, notes: "", icp_score: null, icp_tier: null,
 };
 
 export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, onDeleted }: Props) {
