@@ -19,6 +19,7 @@ export type Contact = {
   source: string;
   twlr_subscriber: boolean | null;
   outreach_status: string | null;
+  list_name: string | null;
   notes: string | null;
   icp_score: number | null;
   icp_tier: string | null;
@@ -233,6 +234,16 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
               {ALL_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
+
+          {/* List Name — read only */}
+          {contact?.list_name && (
+            <div>
+              <label style={labelStyle}>Source List</label>
+              <div style={{ ...inputStyle, opacity: 0.65, cursor: "default", color: t.textMuted }}>
+                {contact.list_name}
+              </div>
+            </div>
+          )}
 
           {/* TWLR toggle */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: t.surfaceAlt, borderRadius: 10, border: `1px solid ${t.border}` }}>

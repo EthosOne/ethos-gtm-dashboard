@@ -28,6 +28,7 @@ type Contact = {
   created_at: string;
   twlr_subscriber: boolean | null;
   outreach_status: string | null;
+  list_name: string | null;
 };
 
 const LIGHT = {
@@ -338,7 +339,7 @@ export default function LeadsPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
               <thead>
                 <tr style={{ background: t.surfaceAlt, borderBottom: `1px solid ${t.border}` }}>
-                  {["Name", "Company", "Role", "Stage", "Location", "Added", "TWLR"].map(col => (
+                  {["Name", "Company", "Role", "Stage", "Location", "List", "Added", "TWLR"].map(col => (
                     <th key={col} style={{
                       padding: "10px 16px", textAlign: "left", fontWeight: 600,
                       color: t.textMuted, fontSize: "0.72rem", letterSpacing: "0.05em",
@@ -424,6 +425,12 @@ export default function LeadsPage() {
                       </td>
                       <td style={{ padding: "11px 16px", color: t.textMuted, fontSize: "0.82rem", whiteSpace: "nowrap" }}>
                         {[c.city, c.country].filter(Boolean).join(", ") || "—"}
+                      </td>
+                      <td style={{ padding: "11px 16px", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {c.list_name
+                          ? <span style={{ fontSize: "0.7rem", color: t.textFaint, background: t.surfaceAlt, border: `1px solid ${t.border}`, borderRadius: 4, padding: "2px 7px" }}>{c.list_name}</span>
+                          : <span style={{ color: t.textFaint, fontSize: "0.75rem" }}>—</span>
+                        }
                       </td>
                       <td style={{ padding: "11px 16px", color: t.textFaint, fontSize: "0.75rem", whiteSpace: "nowrap" }}>
                         {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
