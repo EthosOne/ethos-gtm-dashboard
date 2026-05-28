@@ -52,6 +52,7 @@ type Contact = {
   job_title: string | null;
   stage: string;
   twlr_subscriber?: boolean;
+  outreach_status?: string | null;
 };
 
 function cardName(c: Contact) {
@@ -78,13 +79,22 @@ function KanbanCard({
         <div style={{ fontWeight: 600, fontSize: "0.82rem", color: t.text, lineHeight: 1.3 }}>
           {cardName(contact)}
         </div>
-        {contact.twlr_subscriber && (
-          <span style={{
-            background: "#F4A98822", color: "#C1573B", borderRadius: 999,
-            padding: "1px 6px", fontSize: "0.6rem", fontWeight: 700,
-            letterSpacing: "0.04em", whiteSpace: "nowrap", flexShrink: 0,
-          }}>TWLR</span>
-        )}
+        <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+          {contact.twlr_subscriber && (
+            <span style={{
+              background: "#F4A98822", color: "#C1573B", borderRadius: 999,
+              padding: "1px 6px", fontSize: "0.6rem", fontWeight: 700,
+              letterSpacing: "0.04em", whiteSpace: "nowrap",
+            }}>TWLR</span>
+          )}
+          {contact.outreach_status === "gdpr_hold" && (
+            <span style={{
+              background: "#C1573B22", color: "#C1573B", borderRadius: 4,
+              padding: "1px 6px", fontSize: "0.6rem", fontWeight: 700,
+              letterSpacing: "0.04em", whiteSpace: "nowrap",
+            }}>GDPR</span>
+          )}
+        </div>
       </div>
       {contact.company && (
         <div style={{ fontSize: "0.72rem", color: t.textMuted, marginTop: 3 }}>
@@ -125,12 +135,18 @@ function SortableCard({ contact, t, onClick }: { contact: Contact; t: typeof LIG
           <div style={{ fontWeight: 600, fontSize: "0.82rem", color: t.text, lineHeight: 1.3, flex: 1 }}>
             {cardName(contact)}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
             {contact.twlr_subscriber && (
               <span style={{
                 background: "#F4A98822", color: "#C1573B", borderRadius: 999,
                 padding: "1px 6px", fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.04em",
               }}>TWLR</span>
+            )}
+            {contact.outreach_status === "gdpr_hold" && (
+              <span style={{
+                background: "#C1573B22", color: "#C1573B", borderRadius: 4,
+                padding: "1px 6px", fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.04em",
+              }}>GDPR</span>
             )}
             {/* Drag handle */}
             <div
@@ -243,7 +259,7 @@ export default function KanbanPage() {
     await Promise.all(STAGES.map(async stage => {
       const { data, count } = await supabase
         .from("contacts")
-        .select("id,email,first_name,last_name,company,company_domain,job_title,linkedin_url,city,country,stage,twlr_subscriber,notes,icp_score,icp_tier,created_at,updated_at,demo_scheduled,source", { count: "exact" })
+        .select("id,email,first_name,last_name,company,company_domain,job_title,linkedin_url,city,country,stage,twlr_subscriber,outreach_status,notes,icp_score,icp_tier,created_at,updated_at,demo_scheduled,source", { count: "exact" })
         .eq("stage", stage)
         .order("created_at", { ascending: false })
         .limit(CARDS_PER_STAGE);
