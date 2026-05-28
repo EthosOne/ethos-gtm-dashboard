@@ -27,6 +27,7 @@ type Contact = {
   icp_tier: string | null;
   created_at: string;
   twlr_subscriber: boolean | null;
+  outreach_status: string | null;
 };
 
 const LIGHT = {
@@ -371,6 +372,13 @@ export default function LeadsPage() {
                               padding: "1px 7px", fontSize: "0.62rem", fontWeight: 700,
                               letterSpacing: "0.04em", whiteSpace: "nowrap",
                             }}>TWLR</span>
+                          )}
+                          {c.outreach_status === "gdpr_hold" && (
+                            <span style={{
+                              background: "#C1573B22", color: "#C1573B", borderRadius: 4,
+                              padding: "1px 6px", fontSize: "0.62rem", fontWeight: 700,
+                              letterSpacing: "0.04em", whiteSpace: "nowrap",
+                            }}>GDPR</span>
                           )}
                         </div>
                         <div style={{ fontSize: "0.72rem", color: t.textFaint, marginTop: 2 }}>{c.email}</div>

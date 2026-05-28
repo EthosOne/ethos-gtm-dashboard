@@ -18,6 +18,7 @@ export type Contact = {
   stage: string;
   source: string;
   twlr_subscriber: boolean | null;
+  outreach_status: string | null;
   notes: string | null;
   icp_score: number | null;
   icp_tier: string | null;
@@ -49,7 +50,7 @@ const DARK = {
 const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_scheduled"> = {
   email: "", first_name: "", last_name: "", company: "", company_domain: "",
   job_title: "", linkedin_url: "", city: "", country: "", stage: "Cold",
-  twlr_subscriber: false, notes: "", icp_score: null, icp_tier: null,
+  twlr_subscriber: false, outreach_status: "active", notes: "", icp_score: null, icp_tier: null,
 };
 
 export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, onDeleted }: Props) {
@@ -74,6 +75,7 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
         country: contact.country ?? "",
         stage: contact.stage ?? "Cold",
         twlr_subscriber: contact.twlr_subscriber ?? false,
+        outreach_status: contact.outreach_status ?? "active",
         notes: contact.notes ?? "",
         icp_score: contact.icp_score,
         icp_tier: contact.icp_tier ?? "",
@@ -248,6 +250,35 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
             >
               <span style={{
                 position: "absolute", top: 3, left: form.twlr_subscriber ? 22 : 3,
+                width: 18, height: 18, borderRadius: "50%", background: "#fff",
+                transition: "left 0.2s", display: "block",
+              }} />
+            </button>
+          </div>
+
+          {/* Outreach status toggle */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: t.surfaceAlt, borderRadius: 10, border: `1px solid ${form.outreach_status === "gdpr_hold" ? "#C1573B44" : t.border}` }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ fontSize: "0.83rem", fontWeight: 600, color: t.text }}>Cold Email Outreach</div>
+                {form.outreach_status === "gdpr_hold" && (
+                  <span style={{ fontSize: "0.65rem", fontWeight: 700, background: "#C1573B22", color: "#C1573B", borderRadius: 4, padding: "1px 6px", letterSpacing: "0.04em" }}>GDPR HOLD</span>
+                )}
+              </div>
+              <div style={{ fontSize: "0.72rem", color: t.textFaint }}>
+                {form.outreach_status === "gdpr_hold" ? "Excluded from cold email — GDPR restricted country" : "Included in cold email sequences"}
+              </div>
+            </div>
+            <button
+              onClick={() => set("outreach_status", form.outreach_status === "gdpr_hold" ? "active" : "gdpr_hold")}
+              style={{
+                width: 44, height: 24, borderRadius: 999, border: "none", cursor: "pointer",
+                background: form.outreach_status === "gdpr_hold" ? "#C1573B" : "#4CAF50",
+                position: "relative", transition: "background 0.2s", flexShrink: 0,
+              }}
+            >
+              <span style={{
+                position: "absolute", top: 3, left: form.outreach_status === "gdpr_hold" ? 3 : 22,
                 width: 18, height: 18, borderRadius: "50%", background: "#fff",
                 transition: "left 0.2s", display: "block",
               }} />
