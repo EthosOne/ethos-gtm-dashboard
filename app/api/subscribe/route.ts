@@ -31,16 +31,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Could not save your subscription." }, { status: 500 });
   }
 
-  // Beehiiv integration — add when Joshua provides API key + publication ID
-  // const BEEHIIV_API_KEY = process.env.BEEHIIV_API_KEY;
-  // const BEEHIIV_PUB_ID = process.env.BEEHIIV_PUBLICATION_ID;
-  // if (BEEHIIV_API_KEY && BEEHIIV_PUB_ID) {
-  //   await fetch(`https://api.beehiiv.com/v2/publications/${BEEHIIV_PUB_ID}/subscriptions`, {
-  //     method: "POST",
-  //     headers: { "Content-Type": "application/json", Authorization: `Bearer ${BEEHIIV_API_KEY}` },
-  //     body: JSON.stringify({ email, first_name, reactivate_existing: true, send_welcome_email: true }),
-  //   });
-  // }
+  const BEEHIIV_API_KEY = process.env.BEEHIIV_API_KEY;
+  const BEEHIIV_PUB_ID = process.env.BEEHIIV_PUBLICATION_ID;
+  if (BEEHIIV_API_KEY && BEEHIIV_PUB_ID) {
+    await fetch(`https://api.beehiiv.com/v2/publications/${BEEHIIV_PUB_ID}/subscriptions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${BEEHIIV_API_KEY}` },
+      body: JSON.stringify({ email, first_name, reactivate_existing: true, send_welcome_email: true }),
+    });
+  }
 
   return NextResponse.json({ ok: true });
 }
