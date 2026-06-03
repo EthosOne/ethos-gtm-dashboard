@@ -29,6 +29,7 @@ type Contact = {
   twlr_subscriber: boolean | null;
   outreach_status: string | null;
   list_name: string | null;
+  beehiiv_engaged: boolean | null;
 };
 
 const LIGHT = {
@@ -373,6 +374,13 @@ export default function LeadsPage() {
                               padding: "1px 7px", fontSize: "0.62rem", fontWeight: 700,
                               letterSpacing: "0.04em", whiteSpace: "nowrap",
                             }}>TWLR</span>
+                          )}
+                          {c.beehiiv_engaged && (
+                            <span style={{
+                              background: "#7E9AA822", color: "#2A6070", borderRadius: 999,
+                              padding: "1px 7px", fontSize: "0.62rem", fontWeight: 700,
+                              letterSpacing: "0.04em", whiteSpace: "nowrap",
+                            }}>Engaged</span>
                           )}
                           {c.outreach_status === "gdpr_hold" && (
                             <span style={{
