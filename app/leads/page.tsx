@@ -67,6 +67,8 @@ export default function LeadsPage() {
   const [linkedinCount, setLinkedinCount] = useState(0);
   const [stage, setStage]             = useState("All");
   const [page, setPage]               = useState(0);
+  const [sortField, setSortField]     = useState("created_at");
+  const [sortDir, setSortDir]         = useState<"asc"|"desc">("desc");
   const [loading, setLoading]         = useState(true);
   const [dark, setDark]               = useState(false);
   const [search, setSearch]           = useState("");
@@ -152,7 +154,7 @@ export default function LeadsPage() {
     let q = supabase
       .from("contacts")
       .select("*", { count: "exact" })
-      .order("created_at", { ascending: false })
+      .order(sortField, { ascending: sortDir === "asc", nullsFirst: false })
       .range(page * pageSize, (page + 1) * pageSize - 1);
     if (stage !== "All") q = q.eq("stage", stage);
     if (twlrOnly) q = q.eq("twlr_subscriber", true);
@@ -168,7 +170,7 @@ export default function LeadsPage() {
     if (data) setContacts(data);
     if (count !== null) setTotal(count);
     setLoading(false);
-  }, [stage, page, pageSize, search, twlrOnly, engagedOnly, gdprOnly, linkedinOnly]);
+  }, [stage, page, pageSize, search, twlrOnly, engagedOnly, gdprOnly, linkedinOnly, sortField, sortDir]);
 
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
@@ -203,6 +205,12 @@ export default function LeadsPage() {
 
   const t = dark ? DARK : LIGHT;
   const totalPages = Math.ceil(total / pageSize);
+
+  function toggleSort(field: string) {
+    if (sortField === field) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortField(field); setSortDir("asc"); }
+    setPage(0);
+  }
 
   function name(c: Contact) {
     return [c.first_name, c.last_name].filter(Boolean).join(" ") || c.email;
@@ -396,13 +404,35 @@ export default function LeadsPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
               <thead>
                 <tr style={{ background: t.surfaceAlt, borderBottom: `1px solid ${t.border}` }}>
-                  {["Name", "Company", "Role", "Stage", "Location", "List", "Added", "TWLR"].map(col => (
-                    <th key={col} style={{
-                      padding: "10px 16px", textAlign: "left", fontWeight: 600,
-                      color: t.textMuted, fontSize: "0.72rem", letterSpacing: "0.05em",
-                      textTransform: "uppercase", whiteSpace: "nowrap",
-                      ...(col === "Name" ? { position: "sticky", left: 0, zIndex: 2, background: t.surfaceAlt } : {}),
-                    }}>{col}</th>
+                  {([
+                    { label: "Name",     field: "first_name" },
+                    { label: "Company",  field: "company" },
+                    { label: "Role",     field: "job_title" },
+                    { label: "Stage",    field: "stage" },
+                    { label: "Location", field: "country" },
+                    { label: "List",     field: null },
+                    { label: "Added",    field: "created_at" },
+                    { label: "TWLR",     field: null },
+                  ] as { label: string; field: string | null }[]).map(({ label, field }) => (
+                    <th key={label}
+                      onClick={() => field && toggleSort(field)}
+                      style={{
+                        padding: "10px 16px", textAlign: "left", fontWeight: 600,
+                        color: field && sortField === field ? t.text : t.textMuted,
+                        fontSize: "0.72rem", letterSpacing: "0.05em",
+                        textTransform: "uppercase", whiteSpace: "nowrap",
+                        cursor: field ? "pointer" : "default",
+                        userSelect: "none",
+                        ...(label === "Name" ? { position: "sticky", left: 0, zIndex: 2, background: t.surfaceAlt } : {}),
+                      }}>
+                      {label}
+                      {field && sortField === field && (
+                        <span style={{ marginLeft: 4, opacity: 0.8 }}>{sortDir === "asc" ? "↑" : "↓"}</span>
+                      )}
+                      {field && sortField !== field && (
+                        <span style={{ marginLeft: 4, opacity: 0.2 }}>↕</span>
+                      )}
+                    </th>
                   ))}
                 </tr>
               </thead>
