@@ -20,6 +20,7 @@ export type Contact = {
   twlr_subscriber: boolean | null;
   outreach_status: string | null;
   list_name: string | null;
+  beehiiv_engaged: boolean | null;
   notes: string | null;
   icp_score: number | null;
   icp_tier: string | null;
@@ -51,7 +52,7 @@ const DARK = {
 const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_scheduled"> = {
   email: "", first_name: "", last_name: "", company: "", company_domain: "",
   job_title: "", linkedin_url: "", city: "", country: "", stage: "Cold",
-  twlr_subscriber: false, outreach_status: "active", list_name: null, notes: "", icp_score: null, icp_tier: null,
+  twlr_subscriber: false, outreach_status: "active", list_name: null, notes: "", icp_score: null, icp_tier: null, beehiiv_engaged: false,
 };
 
 export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, onDeleted }: Props) {
@@ -77,6 +78,7 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
         stage: contact.stage ?? "Cold",
         twlr_subscriber: contact.twlr_subscriber ?? false,
         outreach_status: contact.outreach_status ?? "active",
+        beehiiv_engaged: contact.beehiiv_engaged ?? false,
         list_name: contact.list_name ?? null,
         notes: contact.notes ?? "",
         icp_score: contact.icp_score,
@@ -266,6 +268,35 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
                 transition: "left 0.2s", display: "block",
               }} />
             </button>
+          </div>
+
+          {/* Beehiiv Engaged toggle */}
+          <div style={{ borderRadius: 10, border: `1px solid ${form.beehiiv_engaged ? "#2A607044" : t.border}`, overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: form.beehiiv_engaged ? "#7E9AA811" : t.surfaceAlt }}>
+              <div>
+                <div style={{ fontSize: "0.83rem", fontWeight: 600, color: t.text }}>Beehiiv Engaged</div>
+                <div style={{ fontSize: "0.72rem", color: t.textFaint }}>Opened or clicked a TWLR newsletter</div>
+              </div>
+              <button
+                onClick={() => set("beehiiv_engaged", !form.beehiiv_engaged)}
+                style={{
+                  width: 44, height: 24, borderRadius: 999, border: "none", cursor: "pointer",
+                  background: form.beehiiv_engaged ? "#2A6070" : t.border,
+                  position: "relative", transition: "background 0.2s", flexShrink: 0,
+                }}
+              >
+                <span style={{
+                  position: "absolute", top: 3, left: form.beehiiv_engaged ? 22 : 3,
+                  width: 18, height: 18, borderRadius: "50%", background: "#fff",
+                  transition: "left 0.2s", display: "block",
+                }} />
+              </button>
+            </div>
+            {form.beehiiv_engaged && (
+              <div style={{ padding: "7px 14px", background: "#E8A02011", borderTop: `1px solid #E8A02033`, fontSize: "0.7rem", color: "#8A5A00" }}>
+                ⚠ Turning this on will trigger automatic warm outreach via Instantly in the next 2h cycle.
+              </div>
+            )}
           </div>
 
           {/* Outreach status toggle */}

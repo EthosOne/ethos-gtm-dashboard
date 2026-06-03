@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
     const { id, ...fields } = await req.json();
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-    const allowed = ["first_name","last_name","company","company_domain","job_title","linkedin_url","city","country","stage","twlr_subscriber","outreach_status","notes","icp_score","icp_tier"];
+    const allowed = ["first_name","last_name","company","company_domain","job_title","linkedin_url","city","country","stage","twlr_subscriber","outreach_status","notes","icp_score","icp_tier","beehiiv_engaged"];
     const update: Record<string, unknown> = {};
     for (const key of allowed) {
       if (key in fields) update[key] = fields[key];
