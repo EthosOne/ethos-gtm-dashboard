@@ -163,6 +163,16 @@ export default function LeadsPage() {
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
   useEffect(() => {
+    const channel = supabase
+      .channel("contacts-realtime")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "contacts" }, (payload) => {
+        setContacts(prev => prev.map(c => c.id === (payload.new as Contact).id ? { ...c, ...(payload.new as Contact) } : c));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  useEffect(() => {
     const stages = ["Demo Booked", "Qualified", "Cold", "Nurture", "Closed Won", "Closed Lost"];
     Promise.all(
       stages.map(s =>
