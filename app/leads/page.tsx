@@ -208,7 +208,7 @@ export default function LeadsPage() {
     supabase.from("contacts").select("list_name").not("list_name", "is", null)
       .then(({ data }) => {
         if (data) {
-          const unique = [...new Set(data.map((r: { list_name: string }) => r.list_name))].sort();
+          const unique = Array.from(new Set(data.map((r: { list_name: string }) => r.list_name))).sort();
           setListOptions(unique);
         }
       });
