@@ -323,7 +323,7 @@ export default function LeadsPage() {
             const active = stage === s;
             const sc = STAGE_COLORS[s];
             return (
-              <button key={s} onClick={() => { setStage(s); setTwlrOnly(false); setPage(0); }} style={{
+              <button key={s} onClick={() => { setStage(s); setTwlrOnly(false); setListFilter(""); setPage(0); }} style={{
                 background: active ? (sc?.bg ?? t.surface) : t.surface,
                 border: `1px solid ${active ? (sc ? sc.text : t.text) : t.border}`,
                 color: active ? (sc?.text ?? t.text) : t.textMuted,
@@ -336,7 +336,7 @@ export default function LeadsPage() {
             );
           })}
           {/* TWLR filter — mutually exclusive with stage */}
-          <button onClick={() => { setTwlrOnly(v => !v); setEngagedOnly(false); setGdprOnly(false); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setTwlrOnly(v => !v); setEngagedOnly(false); setGdprOnly(false); setLinkedinOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: twlrOnly ? "#F4A98822" : t.surface,
             border: `1px solid ${twlrOnly ? "#F4A98866" : t.border}`,
             color: twlrOnly ? "#C1573B" : t.textMuted,
@@ -346,7 +346,7 @@ export default function LeadsPage() {
           }}>
             TWLR{(() => { const n = twlrOnly ? total : twlrCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{twlrOnly && " ✓"}
           </button>
-          <button onClick={() => { setEngagedOnly(v => !v); setTwlrOnly(false); setGdprOnly(false); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setEngagedOnly(v => !v); setTwlrOnly(false); setGdprOnly(false); setLinkedinOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: engagedOnly ? "#7E9AA822" : t.surface,
             border: `1px solid ${engagedOnly ? "#2A607066" : t.border}`,
             color: engagedOnly ? "#2A6070" : t.textMuted,
@@ -356,7 +356,7 @@ export default function LeadsPage() {
           }}>
             Engaged{(() => { const n = engagedOnly ? total : engagedCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{engagedOnly && " ✓"}
           </button>
-          <button onClick={() => { setLinkedinOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setLinkedinOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: linkedinOnly ? "#0A66C222" : t.surface,
             border: `1px solid ${linkedinOnly ? "#0A66C266" : t.border}`,
             color: linkedinOnly ? "#0A66C2" : t.textMuted,
@@ -366,7 +366,7 @@ export default function LeadsPage() {
           }}>
             LinkedIn{(() => { const n = linkedinOnly ? total : linkedinCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{linkedinOnly && " ✓"}
           </button>
-          <button onClick={() => { setGdprOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setLinkedinOnly(false); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setGdprOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setLinkedinOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: gdprOnly ? "#C1573B22" : t.surface,
             border: `1px solid ${gdprOnly ? "#C1573B66" : t.border}`,
             color: gdprOnly ? "#C1573B" : t.textMuted,
@@ -379,7 +379,7 @@ export default function LeadsPage() {
           {listOptions.length > 0 && (
             <select
               value={listFilter}
-              onChange={e => { setListFilter(e.target.value); setPage(0); }}
+              onChange={e => { setListFilter(e.target.value); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setLinkedinOnly(false); setStage("All"); setPage(0); }}
               style={{
                 background: listFilter ? `${t.accent}22` : t.surface,
                 border: `1px solid ${listFilter ? `${t.accent}88` : t.border}`,
@@ -387,6 +387,7 @@ export default function LeadsPage() {
                 borderRadius: 999, padding: "5px 13px", cursor: "pointer",
                 fontSize: "0.78rem", fontWeight: 600, fontFamily: "inherit",
                 outline: "none", appearance: "none", WebkitAppearance: "none",
+                colorScheme: dark ? "dark" : "light",
                 transition: "all 0.15s",
               }}
             >
