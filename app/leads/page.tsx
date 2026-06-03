@@ -82,6 +82,8 @@ export default function LeadsPage() {
   const [engagedOnly, setEngagedOnly]   = useState(false);
   const [gdprOnly, setGdprOnly]         = useState(false);
   const [twlrUpdating, setTwlrUpdating] = useState<number | null>(null);
+  const [listOptions, setListOptions]   = useState<string[]>([]);
+  const [listFilter, setListFilter]     = useState("");
   const tableRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, scrollLeft: 0 });
@@ -161,6 +163,7 @@ export default function LeadsPage() {
     if (engagedOnly) q = q.eq("beehiiv_engaged", true);
     if (gdprOnly) q = q.eq("outreach_status", "gdpr_hold");
     if (linkedinOnly) q = q.not("linkedin_url", "is", null);
+    if (listFilter) q = q.eq("list_name", listFilter);
     if (search) {
       q = q.or(
         `first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%,company.ilike.%${search}%,job_title.ilike.%${search}%,country.ilike.%${search}%`
@@ -170,7 +173,7 @@ export default function LeadsPage() {
     if (data) setContacts(data);
     if (count !== null) setTotal(count);
     setLoading(false);
-  }, [stage, page, pageSize, search, twlrOnly, engagedOnly, gdprOnly, linkedinOnly, sortField, sortDir]);
+  }, [stage, page, pageSize, search, twlrOnly, engagedOnly, gdprOnly, linkedinOnly, listFilter, sortField, sortDir]);
 
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
@@ -201,6 +204,14 @@ export default function LeadsPage() {
       .then(({ count }) => setGdprCount(count ?? 0));
     supabase.from("contacts").select("*", { count: "exact", head: true }).not("linkedin_url", "is", null)
       .then(({ count }) => setLinkedinCount(count ?? 0));
+
+    supabase.from("contacts").select("list_name").not("list_name", "is", null)
+      .then(({ data }) => {
+        if (data) {
+          const unique = [...new Set(data.map((r: { list_name: string }) => r.list_name))].sort();
+          setListOptions(unique);
+        }
+      });
   }, []);
 
   const t = dark ? DARK : LIGHT;
@@ -365,6 +376,26 @@ export default function LeadsPage() {
           }}>
             GDPR Hold{(() => { const n = gdprOnly ? total : gdprCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{gdprOnly && " ✓"}
           </button>
+          {listOptions.length > 0 && (
+            <select
+              value={listFilter}
+              onChange={e => { setListFilter(e.target.value); setPage(0); }}
+              style={{
+                background: listFilter ? `${t.accent}22` : t.surface,
+                border: `1px solid ${listFilter ? `${t.accent}88` : t.border}`,
+                color: listFilter ? t.text : t.textMuted,
+                borderRadius: 999, padding: "5px 13px", cursor: "pointer",
+                fontSize: "0.78rem", fontWeight: 600, fontFamily: "inherit",
+                outline: "none", appearance: "none", WebkitAppearance: "none",
+                transition: "all 0.15s",
+              }}
+            >
+              <option value="">List: All</option>
+              {listOptions.map(l => (
+                <option key={l} value={l}>{l}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Table */}
