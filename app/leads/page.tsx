@@ -62,8 +62,9 @@ export default function LeadsPage() {
   const [total, setTotal]             = useState(0);
   const [stageCounts, setStageCounts] = useState<Record<string, number>>({});
   const [twlrCount, setTwlrCount]       = useState(0);
-  const [engagedCount, setEngagedCount] = useState(0);
-  const [gdprCount, setGdprCount]       = useState(0);
+  const [engagedCount, setEngagedCount]   = useState(0);
+  const [gdprCount, setGdprCount]         = useState(0);
+  const [linkedinCount, setLinkedinCount] = useState(0);
   const [stage, setStage]             = useState("All");
   const [page, setPage]               = useState(0);
   const [loading, setLoading]         = useState(true);
@@ -73,7 +74,8 @@ export default function LeadsPage() {
   const [pageInput, setPageInput]     = useState("");
   const [updatingId, setUpdatingId]     = useState<number | null>(null);
   const [savedId, setSavedId]           = useState<number | null>(null);
-  const [pageSize, setPageSize]         = useState(50);
+  const [pageSize, setPageSize]           = useState(50);
+  const [linkedinOnly, setLinkedinOnly]   = useState(false);
   const [twlrOnly, setTwlrOnly]         = useState(false);
   const [engagedOnly, setEngagedOnly]   = useState(false);
   const [gdprOnly, setGdprOnly]         = useState(false);
@@ -156,6 +158,7 @@ export default function LeadsPage() {
     if (twlrOnly) q = q.eq("twlr_subscriber", true);
     if (engagedOnly) q = q.eq("beehiiv_engaged", true);
     if (gdprOnly) q = q.eq("outreach_status", "gdpr_hold");
+    if (linkedinOnly) q = q.not("linkedin_url", "is", null);
     if (search) {
       q = q.or(
         `first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%,company.ilike.%${search}%,job_title.ilike.%${search}%,country.ilike.%${search}%`
@@ -165,7 +168,7 @@ export default function LeadsPage() {
     if (data) setContacts(data);
     if (count !== null) setTotal(count);
     setLoading(false);
-  }, [stage, page, pageSize, search, twlrOnly, engagedOnly, gdprOnly]);
+  }, [stage, page, pageSize, search, twlrOnly, engagedOnly, gdprOnly, linkedinOnly]);
 
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
@@ -194,6 +197,8 @@ export default function LeadsPage() {
       .then(({ count }) => setEngagedCount(count ?? 0));
     supabase.from("contacts").select("*", { count: "exact", head: true }).eq("outreach_status", "gdpr_hold")
       .then(({ count }) => setGdprCount(count ?? 0));
+    supabase.from("contacts").select("*", { count: "exact", head: true }).not("linkedin_url", "is", null)
+      .then(({ count }) => setLinkedinCount(count ?? 0));
   }, []);
 
   const t = dark ? DARK : LIGHT;
@@ -331,7 +336,17 @@ export default function LeadsPage() {
           }}>
             Engaged{(() => { const n = engagedOnly ? total : engagedCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{engagedOnly && " ✓"}
           </button>
-          <button onClick={() => { setGdprOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setLinkedinOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setStage("All"); setPage(0); }} style={{
+            background: linkedinOnly ? "#0A66C222" : t.surface,
+            border: `1px solid ${linkedinOnly ? "#0A66C266" : t.border}`,
+            color: linkedinOnly ? "#0A66C2" : t.textMuted,
+            borderRadius: 999, padding: "5px 13px", cursor: "pointer",
+            fontSize: "0.78rem", fontWeight: 700, fontFamily: "inherit",
+            letterSpacing: "0.03em", transition: "all 0.15s",
+          }}>
+            LinkedIn{(() => { const n = linkedinOnly ? total : linkedinCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{linkedinOnly && " ✓"}
+          </button>
+          <button onClick={() => { setGdprOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setLinkedinOnly(false); setStage("All"); setPage(0); }} style={{
             background: gdprOnly ? "#C1573B22" : t.surface,
             border: `1px solid ${gdprOnly ? "#C1573B66" : t.border}`,
             color: gdprOnly ? "#C1573B" : t.textMuted,
@@ -422,6 +437,13 @@ export default function LeadsPage() {
                               padding: "1px 7px", fontSize: "0.62rem", fontWeight: 700,
                               letterSpacing: "0.04em", whiteSpace: "nowrap",
                             }}>Engaged</span>
+                          )}
+                          {c.linkedin_url && (
+                            <span style={{
+                              background: "#0A66C222", color: "#0A66C2", borderRadius: 999,
+                              padding: "1px 7px", fontSize: "0.62rem", fontWeight: 700,
+                              letterSpacing: "0.04em", whiteSpace: "nowrap",
+                            }}>in</span>
                           )}
                           {c.outreach_status === "gdpr_hold" && (
                             <span style={{
