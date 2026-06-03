@@ -55,7 +55,7 @@ const STAGE_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 const ALL_STAGES = ["All", "Demo Booked", "Qualified", "Cold", "Nurture", "Closed Won", "Closed Lost"];
-const pageSize_OPTIONS = [25, 50, 100, 250];
+const PAGE_SIZE_OPTIONS = [25, 50, 100, 250];
 
 export default function LeadsPage() {
   const [contacts, setContacts]       = useState<Contact[]>([]);
