@@ -55,7 +55,7 @@ const STAGE_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 const ALL_STAGES = ["All", "Demo Booked", "Qualified", "Cold", "Nurture", "Closed Won", "Closed Lost"];
-const PAGE_SIZE = 50;
+const pageSize_OPTIONS = [25, 50, 100, 250];
 
 export default function LeadsPage() {
   const [contacts, setContacts]       = useState<Contact[]>([]);
@@ -73,6 +73,7 @@ export default function LeadsPage() {
   const [pageInput, setPageInput]     = useState("");
   const [updatingId, setUpdatingId]     = useState<number | null>(null);
   const [savedId, setSavedId]           = useState<number | null>(null);
+  const [pageSize, setPageSize]         = useState(50);
   const [twlrOnly, setTwlrOnly]         = useState(false);
   const [engagedOnly, setEngagedOnly]   = useState(false);
   const [gdprOnly, setGdprOnly]         = useState(false);
@@ -150,7 +151,7 @@ export default function LeadsPage() {
       .from("contacts")
       .select("*", { count: "exact" })
       .order("created_at", { ascending: false })
-      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      .range(page * pageSize, (page + 1) * pageSize - 1);
     if (stage !== "All") q = q.eq("stage", stage);
     if (twlrOnly) q = q.eq("twlr_subscriber", true);
     if (engagedOnly) q = q.eq("beehiiv_engaged", true);
@@ -164,7 +165,7 @@ export default function LeadsPage() {
     if (data) setContacts(data);
     if (count !== null) setTotal(count);
     setLoading(false);
-  }, [stage, page, search, twlrOnly, engagedOnly, gdprOnly]);
+  }, [stage, page, pageSize, search, twlrOnly, engagedOnly, gdprOnly]);
 
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
@@ -196,7 +197,7 @@ export default function LeadsPage() {
   }, []);
 
   const t = dark ? DARK : LIGHT;
-  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const totalPages = Math.ceil(total / pageSize);
 
   function name(c: Contact) {
     return [c.first_name, c.last_name].filter(Boolean).join(" ") || c.email;
@@ -515,9 +516,25 @@ export default function LeadsPage() {
         {/* Pagination */}
         {totalPages > 1 && (
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", flexWrap: "wrap", gap: 8 }}>
-            <span style={{ color: t.textFaint, fontSize: "0.78rem" }}>
-              {(page * PAGE_SIZE + 1).toLocaleString()}–{Math.min((page + 1) * PAGE_SIZE, total).toLocaleString()} of {total.toLocaleString()}
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ color: t.textFaint, fontSize: "0.78rem" }}>
+                {(page * pageSize + 1).toLocaleString()}–{Math.min((page + 1) * pageSize, total).toLocaleString()} of {total.toLocaleString()}
+              </span>
+              <select
+                value={pageSize}
+                onChange={e => { setPageSize(Number(e.target.value)); setPage(0); }}
+                style={{
+                  background: t.surface, border: `1px solid ${t.border}`,
+                  borderRadius: 8, padding: "4px 8px", fontSize: "0.75rem",
+                  color: t.textMuted, cursor: "pointer", fontFamily: "inherit", outline: "none",
+                  appearance: "none", WebkitAppearance: "none",
+                }}
+              >
+                {PAGE_SIZE_OPTIONS.map(n => (
+                  <option key={n} value={n}>{n} / page</option>
+                ))}
+              </select>
+            </div>
             <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
               {/* Prev */}
               <button disabled={page === 0} onClick={() => setPage(0)} style={{
