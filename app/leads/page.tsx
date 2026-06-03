@@ -207,8 +207,9 @@ export default function LeadsPage() {
   const totalPages = Math.ceil(total / pageSize);
 
   function toggleSort(field: string) {
-    if (sortField === field) setSortDir(d => d === "asc" ? "desc" : "asc");
-    else { setSortField(field); setSortDir("asc"); }
+    if (sortField !== field) { setSortField(field); setSortDir("asc"); }
+    else if (sortDir === "asc") setSortDir("desc");
+    else { setSortField("created_at"); setSortDir("desc"); }
     setPage(0);
   }
 
