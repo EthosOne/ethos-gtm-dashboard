@@ -274,6 +274,35 @@ export default function KanbanPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel("kanban-realtime")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "contacts" }, (payload) => {
+        const updated = payload.new as Contact;
+        const oldStage = (payload.old as Contact).stage;
+        const newStage = updated.stage;
+        setContactsByStage(prev => {
+          const next = { ...prev };
+          if (oldStage && oldStage !== newStage) {
+            next[oldStage] = (next[oldStage] ?? []).filter(c => c.id !== updated.id);
+            if (STAGES.includes(newStage)) {
+              next[newStage] = [updated, ...(next[newStage] ?? []).filter(c => c.id !== updated.id)];
+            }
+            setStageCounts(counts => ({
+              ...counts,
+              [oldStage]: Math.max(0, (counts[oldStage] ?? 0) - 1),
+              [newStage]: (counts[newStage] ?? 0) + 1,
+            }));
+          } else {
+            next[newStage] = (next[newStage] ?? []).map(c => c.id === updated.id ? { ...c, ...updated } : c);
+          }
+          return next;
+        });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } })
