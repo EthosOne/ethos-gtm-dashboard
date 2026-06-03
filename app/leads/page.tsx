@@ -381,14 +381,13 @@ export default function LeadsPage() {
               value={listFilter}
               onChange={e => { setListFilter(e.target.value); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setLinkedinOnly(false); setStage("All"); setPage(0); }}
               style={{
-                background: listFilter ? `${t.accent}22` : t.surface,
-                border: `1px solid ${listFilter ? `${t.accent}88` : t.border}`,
+                background: t.surface,
+                border: `1px solid ${listFilter ? t.accent : t.border}`,
                 color: listFilter ? t.text : t.textMuted,
-                borderRadius: 999, padding: "5px 13px", cursor: "pointer",
+                borderRadius: 8, padding: "5px 10px", cursor: "pointer",
                 fontSize: "0.78rem", fontWeight: 600, fontFamily: "inherit",
-                outline: "none", appearance: "none", WebkitAppearance: "none",
-                colorScheme: dark ? "dark" : "light",
-                transition: "all 0.15s",
+                outline: "none", colorScheme: dark ? "dark" : "light",
+                transition: "border-color 0.15s, color 0.15s",
               }}
             >
               <option value="">List: All</option>
