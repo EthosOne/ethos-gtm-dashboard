@@ -197,6 +197,26 @@ export default function Dashboard() {
             >
               {dark ? "☀ Light" : "◑ Dark"}
             </button>
+            <button
+              onClick={async () => {
+                await fetch("/api/auth/logout", { method: "POST" });
+                window.location.href = "/login";
+              }}
+              style={{
+                background: "none",
+                border: `1px solid ${t.border}`,
+                color: t.textFaint,
+                borderRadius: 999,
+                padding: "6px 14px",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                letterSpacing: "0.04em",
+                fontFamily: "inherit",
+              }}
+            >
+              Sign out
+            </button>
             </div>
 
             {/* Stats */}
