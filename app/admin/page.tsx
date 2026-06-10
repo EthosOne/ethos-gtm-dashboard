@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 
+type UserRow = { id: string; email: string; name: string; role: string; created_at: string; last_sign_in: string | null };
+
 export default function AdminPage() {
   const [authorized, setAuthorized] = useState<boolean | null>(null);
+  const [users, setUsers] = useState<UserRow[]>([]);
 
   // Invite state
   const [inviteEmail, setInviteEmail] = useState("");
@@ -21,7 +24,11 @@ export default function AdminPage() {
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      setAuthorized(user?.user_metadata?.role === "admin");
+      const isAdmin = user?.user_metadata?.role === "admin";
+      setAuthorized(isAdmin);
+      if (isAdmin) {
+        fetch("/api/admin/users").then(r => r.json()).then(d => setUsers(d.users || []));
+      }
     });
   }, []);
 
@@ -107,6 +114,39 @@ export default function AdminPage() {
               {pwLoading ? "Updating…" : "Update password"}
             </button>
           </form>
+        </div>
+
+        {/* Users table */}
+        <div style={s.card}>
+          <h2 style={s.cardTitle}>Users</h2>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid rgba(54,53,65,0.1)" }}>
+                {["Name", "Email", "Role", "Last sign in"].map(h => (
+                  <th key={h} style={{ textAlign: "left", padding: "0 8px 10px 0", color: "#7A7888", fontWeight: 600 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(u => (
+                <tr key={u.id} style={{ borderBottom: "1px solid rgba(54,53,65,0.06)" }}>
+                  <td style={{ padding: "10px 8px 10px 0", color: "#363541", fontWeight: 500 }}>{u.name}</td>
+                  <td style={{ padding: "10px 8px 10px 0", color: "#4A4858" }}>{u.email}</td>
+                  <td style={{ padding: "10px 8px 10px 0" }}>
+                    <span style={{ background: u.role === "admin" ? "#363541" : "#E3E1E8", color: u.role === "admin" ? "#fff" : "#4A4858", borderRadius: 999, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>
+                      {u.role}
+                    </span>
+                  </td>
+                  <td style={{ padding: "10px 0", color: "#7A7888" }}>
+                    {u.last_sign_in ? new Date(u.last_sign_in).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "Never"}
+                  </td>
+                </tr>
+              ))}
+              {users.length === 0 && (
+                <tr><td colSpan={4} style={{ padding: "16px 0", color: "#7A7888" }}>Loading…</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
 
         {/* Invite user */}
