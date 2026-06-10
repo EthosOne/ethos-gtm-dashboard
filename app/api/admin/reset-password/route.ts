@@ -12,7 +12,8 @@ export async function POST(request: Request) {
   const { userId } = await request.json();
   if (!userId) return NextResponse.json({ error: "userId required" }, { status: 400 });
 
-  const tempPassword = "EthosReset2026!";
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  const tempPassword = Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join("") + "!1";
 
   const admin = createAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

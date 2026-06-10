@@ -9,6 +9,7 @@ export default function AdminPage() {
   const [authorized, setAuthorized] = useState<boolean | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [resetMsg, setResetMsg] = useState<Record<string, string>>({});
+  const [isMobile, setIsMobile] = useState(false);
 
   // Change password state
   const [newPassword, setNewPassword] = useState("");
@@ -16,6 +17,13 @@ export default function AdminPage() {
   const [pwLoading, setPwLoading] = useState(false);
   const [pwMsg, setPwMsg] = useState("");
   const [pwError, setPwError] = useState("");
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 600);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -112,52 +120,88 @@ export default function AdminPage() {
           </form>
         </div>
 
-        {/* Users table */}
+        {/* Users */}
         <div style={s.card}>
           <h2 style={s.cardTitle}>Users</h2>
-          <div style={{ overflowX: "auto", margin: "0 -16px", padding: "0 16px" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 380 }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid rgba(54,53,65,0.1)" }}>
-                {["Name", "Email", "Role", "Last sign in", ""].map(h => (
-                  <th key={h} style={{ textAlign: "left", padding: "0 8px 10px 0", color: "#7A7888", fontWeight: 600 }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
+
+          {isMobile ? (
+            /* Mobile: card per user */
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
+              {users.length === 0 && <p style={{ color: "#7A7888", fontSize: 13 }}>Loading…</p>}
               {users.map(u => (
-                <tr key={u.id} style={{ borderBottom: "1px solid rgba(54,53,65,0.06)" }}>
-                  <td style={{ padding: "10px 8px 10px 0", color: "#363541", fontWeight: 500 }}>{u.name}</td>
-                  <td style={{ padding: "10px 8px 10px 0", color: "#4A4858" }}>{u.email}</td>
-                  <td style={{ padding: "10px 8px 10px 0" }}>
-                    <span style={{ background: u.role === "admin" ? "#363541" : "#E3E1E8", color: u.role === "admin" ? "#fff" : "#4A4858", borderRadius: 999, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>
+                <div key={u.id} style={{ border: "1px solid rgba(54,53,65,0.1)", borderRadius: 10, padding: "12px 14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, color: "#363541", fontSize: 13 }}>{u.name || "—"}</div>
+                      <div style={{ color: "#4A4858", fontSize: 12, marginTop: 2, wordBreak: "break-all" }}>{u.email}</div>
+                      <div style={{ color: "#7A7888", fontSize: 11, marginTop: 4 }}>
+                        {u.last_sign_in ? new Date(u.last_sign_in).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "Never signed in"}
+                      </div>
+                    </div>
+                    <span style={{ background: u.role === "admin" ? "#363541" : "#E3E1E8", color: u.role === "admin" ? "#fff" : "#4A4858", borderRadius: 999, padding: "2px 10px", fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
                       {u.role}
                     </span>
-                  </td>
-                  <td style={{ padding: "10px 0", color: "#7A7888" }}>
-                    {u.last_sign_in ? new Date(u.last_sign_in).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "Never"}
-                  </td>
-                  <td style={{ padding: "10px 0 10px 8px" }}>
+                  </div>
+                  <div style={{ marginTop: 10 }}>
                     <button
                       onClick={() => handleResetPassword(u.id, u.email)}
-                      style={{ background: "none", border: "1px solid rgba(54,53,65,0.2)", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#4A4858", cursor: "pointer" }}
+                      style={{ background: "none", border: "1px solid rgba(54,53,65,0.2)", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, color: "#4A4858", cursor: "pointer" }}
                     >
-                      <i className="bi bi-key" style={{ marginRight: 4 }} />Reset
+                      <i className="bi bi-key" style={{ marginRight: 4 }} />Reset password
                     </button>
                     {resetMsg[u.id] && (
-                      <p style={{ fontSize: 11, color: resetMsg[u.id].startsWith("New") ? "#4CAF7D" : "#E05C5C", margin: "4px 0 0", whiteSpace: "nowrap" }}>
+                      <p style={{ fontSize: 11, color: resetMsg[u.id].startsWith("New") ? "#4CAF7D" : "#E05C5C", margin: "6px 0 0" }}>
                         {resetMsg[u.id]}
                       </p>
                     )}
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-              {users.length === 0 && (
-                <tr><td colSpan={4} style={{ padding: "16px 0", color: "#7A7888" }}>Loading…</td></tr>
-              )}
-            </tbody>
-          </table>
-          </div>
+            </div>
+          ) : (
+            /* Desktop: table */
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, marginTop: 8 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid rgba(54,53,65,0.1)" }}>
+                  {["Name", "Email", "Role", "Last sign in", ""].map(h => (
+                    <th key={h} style={{ textAlign: "left", padding: "0 8px 10px 0", color: "#7A7888", fontWeight: 600 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(u => (
+                  <tr key={u.id} style={{ borderBottom: "1px solid rgba(54,53,65,0.06)" }}>
+                    <td style={{ padding: "10px 8px 10px 0", color: "#363541", fontWeight: 500 }}>{u.name}</td>
+                    <td style={{ padding: "10px 8px 10px 0", color: "#4A4858" }}>{u.email}</td>
+                    <td style={{ padding: "10px 8px 10px 0" }}>
+                      <span style={{ background: u.role === "admin" ? "#363541" : "#E3E1E8", color: u.role === "admin" ? "#fff" : "#4A4858", borderRadius: 999, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>
+                        {u.role}
+                      </span>
+                    </td>
+                    <td style={{ padding: "10px 0", color: "#7A7888" }}>
+                      {u.last_sign_in ? new Date(u.last_sign_in).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "Never"}
+                    </td>
+                    <td style={{ padding: "10px 0 10px 8px" }}>
+                      <button
+                        onClick={() => handleResetPassword(u.id, u.email)}
+                        style={{ background: "none", border: "1px solid rgba(54,53,65,0.2)", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#4A4858", cursor: "pointer" }}
+                      >
+                        <i className="bi bi-key" style={{ marginRight: 4 }} />Reset
+                      </button>
+                      {resetMsg[u.id] && (
+                        <p style={{ fontSize: 11, color: resetMsg[u.id].startsWith("New") ? "#4CAF7D" : "#E05C5C", margin: "4px 0 0", whiteSpace: "nowrap" }}>
+                          {resetMsg[u.id]}
+                        </p>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {users.length === 0 && (
+                  <tr><td colSpan={5} style={{ padding: "16px 0", color: "#7A7888" }}>Loading…</td></tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
 
       </div>
