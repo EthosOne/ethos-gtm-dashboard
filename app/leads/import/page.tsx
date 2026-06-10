@@ -185,7 +185,7 @@ export default function ImportPage() {
             fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em",
             transition: "background 0.3s, color 0.3s", fontFamily: "inherit",
           }}>
-            <i className={dark ? "bi bi-sun-fill" : "bi bi-moon-half"} style={{ marginRight: 5, color: t.toggleText }} />{dark ? "Light" : "Dark"}
+            <i className={dark ? "bi bi-sun-fill" : "bi bi-moon-fill"} style={{ marginRight: 5, color: t.toggleText }} />{dark ? "Light" : "Dark"}
           </button>
           </div>
         </div>
