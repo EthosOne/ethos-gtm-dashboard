@@ -115,7 +115,8 @@ export default function AdminPage() {
         {/* Users table */}
         <div style={s.card}>
           <h2 style={s.cardTitle}>Users</h2>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <div style={{ overflowX: "auto", margin: "0 -16px", padding: "0 16px" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 380 }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(54,53,65,0.1)" }}>
                 {["Name", "Email", "Role", "Last sign in", ""].map(h => (
@@ -156,6 +157,7 @@ export default function AdminPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
       </div>
@@ -180,7 +182,7 @@ const s: Record<string, React.CSSProperties> = {
   card: {
     background: "#FFFFFF",
     borderRadius: 16,
-    padding: "32px",
+    padding: "24px 16px",
     border: "1px solid rgba(54,53,65,0.1)",
     boxShadow: "0 2px 12px rgba(54,53,65,0.06)",
   },
