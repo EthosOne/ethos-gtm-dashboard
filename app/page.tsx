@@ -210,7 +210,7 @@ export default function Dashboard() {
                 fontFamily: "inherit",
               }}
             >
-              <i className={dark ? "bi bi-sun" : "bi bi-moon-half"} style={{ marginRight: 5 }} />{dark ? "Light" : "Dark"}
+              <i className={dark ? "bi bi-sun-fill" : "bi bi-moon-half"} style={{ marginRight: 5 }} />{dark ? "Light" : "Dark"}
             </button>
             <button
               onClick={async () => {
