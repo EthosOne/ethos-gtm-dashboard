@@ -8,6 +8,7 @@ type UserRow = { id: string; email: string; name: string; role: string; created_
 export default function AdminPage() {
   const [authorized, setAuthorized] = useState<boolean | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [resetMsg, setResetMsg] = useState<Record<string, string>>({});
 
   // Change password state
   const [newPassword, setNewPassword] = useState("");
@@ -26,6 +27,21 @@ export default function AdminPage() {
       }
     });
   }, []);
+
+  async function handleResetPassword(userId: string, email: string) {
+    setResetMsg(prev => ({ ...prev, [userId]: "Resetting…" }));
+    const res = await fetch("/api/admin/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setResetMsg(prev => ({ ...prev, [userId]: `New password: ${data.tempPassword}` }));
+    } else {
+      setResetMsg(prev => ({ ...prev, [userId]: "Error. Try again." }));
+    }
+  }
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
@@ -102,7 +118,7 @@ export default function AdminPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(54,53,65,0.1)" }}>
-                {["Name", "Email", "Role", "Last sign in"].map(h => (
+                {["Name", "Email", "Role", "Last sign in", ""].map(h => (
                   <th key={h} style={{ textAlign: "left", padding: "0 8px 10px 0", color: "#7A7888", fontWeight: 600 }}>{h}</th>
                 ))}
               </tr>
@@ -119,6 +135,19 @@ export default function AdminPage() {
                   </td>
                   <td style={{ padding: "10px 0", color: "#7A7888" }}>
                     {u.last_sign_in ? new Date(u.last_sign_in).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "Never"}
+                  </td>
+                  <td style={{ padding: "10px 0 10px 8px" }}>
+                    <button
+                      onClick={() => handleResetPassword(u.id, u.email)}
+                      style={{ background: "none", border: "1px solid rgba(54,53,65,0.2)", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#4A4858", cursor: "pointer" }}
+                    >
+                      Reset
+                    </button>
+                    {resetMsg[u.id] && (
+                      <p style={{ fontSize: 11, color: resetMsg[u.id].startsWith("New") ? "#4CAF7D" : "#E05C5C", margin: "4px 0 0", whiteSpace: "nowrap" }}>
+                        {resetMsg[u.id]}
+                      </p>
+                    )}
                   </td>
                 </tr>
               ))}
