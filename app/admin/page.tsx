@@ -116,7 +116,7 @@ export default function AdminPage() {
             <p style={{ fontSize: 14, color: t.textFaint, margin: 0 }}>User management</p>
           </div>
           <button onClick={toggleTheme} style={{ background: t.toggleBg, color: t.toggleText, border: "none", borderRadius: 999, padding: "6px 14px", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
-            <i className={dark ? "bi bi-sun-fill" : "bi bi-moon-half"} style={{ marginRight: 5 }} />{dark ? "Light" : "Dark"}
+            <i className={dark ? "bi bi-sun-fill" : "bi bi-moon-half"} style={{ marginRight: 5, color: "inherit" }} />{dark ? "Light" : "Dark"}
           </button>
         </div>
 
