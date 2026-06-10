@@ -135,7 +135,7 @@ export default function AdminPage() {
                       <div style={{ fontWeight: 600, color: "#363541", fontSize: 13 }}>{u.name || "—"}</div>
                       <div style={{ color: "#4A4858", fontSize: 12, marginTop: 2, wordBreak: "break-all" }}>{u.email}</div>
                       <div style={{ color: "#7A7888", fontSize: 11, marginTop: 4 }}>
-                        {u.last_sign_in ? new Date(u.last_sign_in).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "Never signed in"}
+                        {u.last_sign_in ? `Last sign in: ${new Date(u.last_sign_in).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : "Never signed in"}
                       </div>
                     </div>
                     <span style={{ background: u.role === "admin" ? "#363541" : "#E3E1E8", color: u.role === "admin" ? "#fff" : "#4A4858", borderRadius: 999, padding: "2px 10px", fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
