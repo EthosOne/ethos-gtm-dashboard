@@ -141,7 +141,7 @@ export default function AdminPage() {
                       onClick={() => handleResetPassword(u.id, u.email)}
                       style={{ background: "none", border: "1px solid rgba(54,53,65,0.2)", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#4A4858", cursor: "pointer" }}
                     >
-                      Reset
+                      <i className="bi bi-key" style={{ marginRight: 4 }} />Reset
                     </button>
                     {resetMsg[u.id] && (
                       <p style={{ fontSize: 11, color: resetMsg[u.id].startsWith("New") ? "#4CAF7D" : "#E05C5C", margin: "4px 0 0", whiteSpace: "nowrap" }}>

@@ -75,7 +75,7 @@ export default function LoginPage() {
               }}
               tabIndex={-1}
             >
-              {showPassword ? "🙈" : "👁"}
+              <i className={showPassword ? "bi bi-eye-slash" : "bi bi-eye"} />
             </button>
           </div>
           {error && <p className={s.errorText}>{error}</p>}
