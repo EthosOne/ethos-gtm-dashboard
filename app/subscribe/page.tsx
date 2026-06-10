@@ -73,7 +73,7 @@ export default function SubscribePage() {
   }
 
   return (
-    <main style={{ background: t.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem 1.5rem" }}>
+    <main style={{ background: t.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem 1.5rem", overflowX: "hidden" }}>
       <div style={{ maxWidth: 480, width: "100%" }}>
 
         <img src="/ethos-wordmark.png" alt="Ethos One"

@@ -110,6 +110,7 @@ export default function Dashboard() {
       minHeight: "100vh",
       transition: "background 0.3s ease",
       padding: "0",
+      overflowX: "hidden",
     }}>
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 

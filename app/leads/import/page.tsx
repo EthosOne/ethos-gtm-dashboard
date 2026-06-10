@@ -159,7 +159,7 @@ export default function ImportPage() {
   const mappedCount = Object.values(mapping).filter(Boolean).length;
 
   return (
-    <main style={{ background: t.bg, minHeight: "100vh", padding: 0, transition: "background 0.3s" }}>
+    <main style={{ background: t.bg, minHeight: "100vh", padding: 0, transition: "background 0.3s", overflowX: "hidden" }}>
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 
         {/* Header */}

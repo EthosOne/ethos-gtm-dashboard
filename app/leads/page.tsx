@@ -229,7 +229,7 @@ export default function LeadsPage() {
   }
 
   return (
-    <main style={{ background: t.bg, minHeight: "100vh", padding: 0, transition: "background 0.3s" }}>
+    <main style={{ background: t.bg, minHeight: "100vh", padding: 0, transition: "background 0.3s", overflowX: "hidden" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 
         {/* Header */}

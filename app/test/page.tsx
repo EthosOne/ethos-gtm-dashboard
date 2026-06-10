@@ -111,7 +111,7 @@ export default function TestPage() {
   }
 
   return (
-    <main style={{ fontFamily: "var(--font-jakarta), system-ui, sans-serif", background: t.bg, minHeight: "100vh", padding: "2rem 1rem", transition: "background 0.3s" }}>
+    <main style={{ fontFamily: "var(--font-jakarta), system-ui, sans-serif", background: t.bg, minHeight: "100vh", padding: "2rem 1rem", transition: "background 0.3s", overflowX: "hidden" }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
 
         {/* Header */}

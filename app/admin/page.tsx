@@ -217,6 +217,7 @@ const s: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     padding: "48px 16px",
     fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+    overflowX: "hidden",
   },
   wrapper: { width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", gap: 24 },
   header: { marginBottom: 8 },
