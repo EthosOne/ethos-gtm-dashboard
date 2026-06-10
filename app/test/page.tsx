@@ -124,7 +124,7 @@ export default function TestPage() {
             </p>
           </div>
           <button onClick={toggleTheme} style={{ background: t.toggleBg, color: t.toggleText, border: "none", borderRadius: 999, padding: "6px 14px", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-            <i className={dark ? "bi bi-sun-fill" : "bi bi-moon-half"} style={{ marginRight: 5, color: "inherit" }} />{dark ? "Light" : "Dark"}
+            <i className={dark ? "bi bi-sun-fill" : "bi bi-moon-half"} style={{ marginRight: 5, color: t.toggleText }} />{dark ? "Light" : "Dark"}
           </button>
         </div>
 
