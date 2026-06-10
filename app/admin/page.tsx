@@ -9,11 +9,6 @@ export default function AdminPage() {
   const [authorized, setAuthorized] = useState<boolean | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
 
-  // Invite state
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [inviteMsg, setInviteMsg] = useState("");
-
   // Change password state
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -31,21 +26,6 @@ export default function AdminPage() {
       }
     });
   }, []);
-
-  async function handleInvite(e: React.FormEvent) {
-    e.preventDefault();
-    setInviteLoading(true);
-    setInviteMsg("");
-    const res = await fetch("/api/admin/invite", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: inviteEmail }),
-    });
-    const data = await res.json();
-    setInviteMsg(data.message || (res.ok ? "Invite sent." : "Something went wrong."));
-    if (res.ok) setInviteEmail("");
-    setInviteLoading(false);
-  }
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
@@ -147,26 +127,6 @@ export default function AdminPage() {
               )}
             </tbody>
           </table>
-        </div>
-
-        {/* Invite user */}
-        <div style={s.card}>
-          <h2 style={s.cardTitle}>Invite a user</h2>
-          <p style={s.cardSubtitle}>Sends an invite email via Supabase</p>
-          <form onSubmit={handleInvite} style={s.form}>
-            <input
-              type="email"
-              placeholder="teammate@ethosone.ai"
-              value={inviteEmail}
-              onChange={e => setInviteEmail(e.target.value)}
-              required
-              style={s.input}
-            />
-            <button type="submit" disabled={inviteLoading} style={s.button}>
-              {inviteLoading ? "Sending…" : "Send invite"}
-            </button>
-          </form>
-          {inviteMsg && <p style={s.success}>{inviteMsg}</p>}
         </div>
 
       </div>
