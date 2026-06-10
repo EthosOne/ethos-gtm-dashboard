@@ -282,7 +282,7 @@ export default function LeadsPage() {
               fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em",
               transition: "background 0.3s, color 0.3s", fontFamily: "inherit",
             }}>
-              {dark ? "☀ Light" : "◑ Dark"}
+              <i className={dark ? "bi bi-sun" : "bi bi-moon-half"} style={{ marginRight: 5 }} />{dark ? "Light" : "Dark"}
             </button>
           </div>
         </div>

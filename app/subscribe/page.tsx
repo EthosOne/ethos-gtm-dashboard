@@ -55,7 +55,7 @@ export default function SubscribePage() {
             background: t.surface, border: `1px solid ${t.border}`,
             borderRadius: 20, padding: "2.5rem 2rem",
           }}>
-            <div style={{ fontSize: "2rem", marginBottom: 12 }}>✓</div>
+            <i className="bi bi-check-circle-fill" style={{ fontSize: "2rem", marginBottom: 12, display: "block", color: "#7A8A5C" }} />
             <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: t.text, margin: "0 0 8px", letterSpacing: "-0.02em" }}>
               You&apos;re in.
             </h2>

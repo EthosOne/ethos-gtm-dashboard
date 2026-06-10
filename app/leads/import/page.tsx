@@ -185,7 +185,7 @@ export default function ImportPage() {
             fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em",
             transition: "background 0.3s, color 0.3s", fontFamily: "inherit",
           }}>
-            {dark ? "☀ Light" : "◑ Dark"}
+            <i className={dark ? "bi bi-sun" : "bi bi-moon-half"} style={{ marginRight: 5 }} />{dark ? "Light" : "Dark"}
           </button>
           </div>
         </div>
@@ -272,7 +272,7 @@ export default function ImportPage() {
               </div>
               {!mapping.email && (
                 <div style={{ marginTop: 12, fontSize: "0.78rem", color: "#C1573B", fontWeight: 500 }}>
-                  ⚠ Map the Email field to continue
+                  <i className="bi bi-exclamation-triangle-fill" style={{ marginRight: 5 }} />Map the Email field to continue
                 </div>
               )}
             </div>
@@ -321,7 +321,10 @@ export default function ImportPage() {
                 borderRadius: 10, padding: "14px 18px", marginBottom: "1.25rem",
               }}>
                 <div style={{ fontWeight: 700, color: result.errors.length === 0 ? "#3F5030" : "#8A3A25", marginBottom: 6 }}>
-                  {result.errors.length === 0 ? "✓ Import complete" : "⚠ Import finished with errors"}
+                  {result.errors.length === 0
+  ? <><i className="bi bi-check-circle-fill" style={{ marginRight: 6 }} />Import complete</>
+  : <><i className="bi bi-exclamation-triangle-fill" style={{ marginRight: 6 }} />Import finished with errors</>
+}
                 </div>
                 <div style={{ fontSize: "0.82rem", color: t.textMuted }}>
                   {result.imported.toLocaleString()} imported
