@@ -99,7 +99,7 @@ export default function SubscribePage() {
             The Work-Life Reporter
           </h1>
           <p style={{ color: t.textMuted, fontSize: "0.875rem", lineHeight: 1.6, margin: "0 0 28px" }}>
-            GTM insights, pipeline frameworks, and outbound tactics — delivered every week to founders and revenue teams.
+            The newsletter for people who take work culture seriously. Five culture plays, three micro-playbooks, and one leader spotlight — every week.
           </p>
 
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
