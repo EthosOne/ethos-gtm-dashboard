@@ -66,10 +66,26 @@ const STATUS_LABEL: Record<string, string> = {
   error:   "Error",
 };
 
+type Signal = {
+  id: number;
+  first_name: string | null;
+  last_name: string | null;
+  company: string | null;
+  job_title: string | null;
+  stage: string | null;
+  beehiiv_engaged: boolean | null;
+  linkedin_url: string | null;
+  updated_at: string;
+};
+
 export default function Dashboard() {
   const [pillars, setPillars]   = useState<Pillar[]>([]);
   const [lastRefresh, setLastRefresh] = useState<string>("");
   const [dark, setDark]         = useState<boolean>(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelLoading, setPanelLoading] = useState(false);
+  const [pulse, setPulse]       = useState({ subscribers: 0, engaged: 0, outreach: 0 });
+  const [signals, setSignals]   = useState<Signal[]>([]);
 
   // persist theme
   useEffect(() => {
@@ -99,6 +115,24 @@ export default function Dashboard() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  async function openSignalsPanel() {
+    setPanelOpen(true);
+    setPanelLoading(true);
+    const [{ count: subs }, { count: eng }, { count: out }, { data: sig }] = await Promise.all([
+      supabase.from("twlr_subscribers").select("*", { count: "exact", head: true }),
+      supabase.from("contacts").select("*", { count: "exact", head: true }).eq("beehiiv_engaged", true),
+      supabase.from("contacts").select("*", { count: "exact", head: true }).eq("instantly_enrolled", true),
+      supabase.from("contacts")
+        .select("id,first_name,last_name,company,job_title,stage,beehiiv_engaged,linkedin_url,updated_at")
+        .or("beehiiv_engaged.eq.true,stage.eq.Nurture")
+        .order("updated_at", { ascending: false })
+        .limit(10),
+    ]);
+    setPulse({ subscribers: subs ?? 0, engaged: eng ?? 0, outreach: out ?? 0 });
+    setSignals((sig as Signal[]) ?? []);
+    setPanelLoading(false);
+  }
 
   const t = dark ? DARK : LIGHT;
   const active  = pillars.filter(p => p.status === "active").length;
@@ -259,9 +293,11 @@ export default function Dashboard() {
         }}>
           {pillars.map(p => {
             const meta = PILLAR_META[p.name] ?? { icon: "◆", gradient: "linear-gradient(135deg, #9D9BAA, #5C5A6A)" };
+            const clickable = p.name === "Intent/Signals";
             return (
               <div
                 key={p.id}
+                onClick={clickable ? openSignalsPanel : undefined}
                 style={{
                   background: t.surface,
                   border: `1px solid ${t.border}`,
@@ -271,6 +307,7 @@ export default function Dashboard() {
                   display: "flex",
                   flexDirection: "column",
                   gap: 12,
+                  cursor: clickable ? "pointer" : "default",
                 }}
               >
                 {/* Card header */}
@@ -330,10 +367,16 @@ export default function Dashboard() {
                   borderTop: `1px solid ${t.border}`,
                   paddingTop: 8,
                   marginTop: "auto",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
                 }}>
-                  {new Date(p.updated_at).toLocaleString("en-GB", {
+                  <span>{new Date(p.updated_at).toLocaleString("en-GB", {
                     day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
-                  })}
+                  })}</span>
+                  {clickable && (
+                    <span style={{ color: t.accent, fontWeight: 600 }}>View details →</span>
+                  )}
                 </div>
               </div>
             );
@@ -362,6 +405,135 @@ export default function Dashboard() {
           }} title="Realtime connected" />
         </div>
       </div>
+
+      {/* Intent/Signals slide panel */}
+      <div
+        onClick={() => setPanelOpen(false)}
+        style={{
+          position: "fixed", inset: 0, zIndex: 100,
+          background: "rgba(0,0,0,0.4)",
+          opacity: panelOpen ? 1 : 0,
+          pointerEvents: panelOpen ? "auto" : "none",
+          transition: "opacity 0.25s ease",
+        }}
+      />
+      <aside
+        style={{
+          position: "fixed", top: 0, right: 0, zIndex: 101,
+          height: "100vh", width: "min(420px, 90vw)",
+          background: t.surface,
+          borderLeft: `1px solid ${t.border}`,
+          boxShadow: "-8px 0 32px rgba(0,0,0,0.18)",
+          transform: panelOpen ? "translateX(0)" : "translateX(100%)",
+          transition: "transform 0.3s cubic-bezier(0.4,0,0.2,1)",
+          display: "flex", flexDirection: "column",
+          overflowY: "auto",
+        }}
+      >
+        {/* Panel header */}
+        <div style={{ padding: "1.5rem", borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 9,
+              background: PILLAR_META["Intent/Signals"].gradient,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff", fontSize: "1rem",
+            }}>
+              <i className="bi-broadcast" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "0.95rem", color: t.text }}>Intent / Signals</div>
+              <div style={{ fontSize: "0.72rem", color: t.textFaint }}>Newsletter & LinkedIn intent</div>
+            </div>
+          </div>
+          <button onClick={() => setPanelOpen(false)} style={{
+            background: "none", border: "none", color: t.textMuted,
+            fontSize: "1.3rem", cursor: "pointer", lineHeight: 1, fontFamily: "inherit",
+          }}>
+            <i className="bi-x-lg" style={{ fontSize: "1rem" }} />
+          </button>
+        </div>
+
+        {panelLoading ? (
+          <div style={{ padding: "2rem 1.5rem", color: t.textMuted, fontSize: "0.9rem" }}>Loading…</div>
+        ) : (
+          <>
+            {/* TWLR Pulse */}
+            <div style={{ padding: "1.5rem", borderBottom: `1px solid ${t.border}` }}>
+              <div style={{ fontSize: "0.72rem", fontWeight: 600, color: t.textFaint, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
+                TWLR Pulse
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+                {[
+                  { label: "Subscribers", value: pulse.subscribers, color: "#8B2332" },
+                  { label: "Engaged",     value: pulse.engaged,     color: "#C9A24B" },
+                  { label: "In Outreach", value: pulse.outreach,    color: t.accent },
+                ].map(m => (
+                  <div key={m.label} style={{ background: t.surfaceAlt, border: `1px solid ${t.border}`, borderRadius: 10, padding: "0.85rem 0.6rem", textAlign: "center" }}>
+                    <div style={{ fontSize: "1.5rem", fontWeight: 800, color: m.color, lineHeight: 1 }}>
+                      {m.value.toLocaleString("en-GB")}
+                    </div>
+                    <div style={{ fontSize: "0.66rem", color: t.textMuted, marginTop: 5, fontWeight: 600 }}>{m.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent signals */}
+            <div style={{ padding: "1.5rem", flex: 1 }}>
+              <div style={{ fontSize: "0.72rem", fontWeight: 600, color: t.textFaint, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
+                Recent Signals
+              </div>
+              {signals.length === 0 ? (
+                <div style={{ color: t.textFaint, fontSize: "0.85rem" }}>No signals yet.</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {signals.map(s => {
+                    const name = [s.first_name, s.last_name].filter(Boolean).join(" ") || "Unknown";
+                    const badge = s.beehiiv_engaged
+                      ? { label: "Newsletter", bg: "#C9A24B22", fg: "#9A7B1F" }
+                      : { label: "LinkedIn",   bg: "#0A66C222", fg: "#0A66C2" };
+                    return (
+                      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "0.6rem 0.75rem", background: t.surfaceAlt, border: `1px solid ${t.border}`, borderRadius: 10 }}>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                          background: PILLAR_META["Intent/Signals"].gradient,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          color: "#fff", fontWeight: 700, fontSize: "0.8rem",
+                        }}>
+                          {name.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: "0.82rem", fontWeight: 600, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
+                          <div style={{ fontSize: "0.7rem", color: t.textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {s.company ?? s.job_title ?? "—"}
+                          </div>
+                        </div>
+                        <span style={{ fontSize: "0.62rem", fontWeight: 700, color: badge.fg, background: badge.bg, padding: "3px 7px", borderRadius: 6, letterSpacing: "0.04em", flexShrink: 0 }}>
+                          {badge.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Panel footer */}
+            <div style={{ padding: "1.25rem 1.5rem", borderTop: `1px solid ${t.border}` }}>
+              <a href="/leads" style={{
+                display: "block", textAlign: "center",
+                background: t.accent, color: "#363541",
+                borderRadius: 999, padding: "9px 14px",
+                fontSize: "0.8rem", fontWeight: 700, textDecoration: "none",
+                letterSpacing: "0.03em",
+              }}>
+                View all in Pipeline →
+              </a>
+            </div>
+          </>
+        )}
+      </aside>
     </main>
   );
 }
