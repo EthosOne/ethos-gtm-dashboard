@@ -9,13 +9,13 @@ export async function GET() {
 
   const params = new URLSearchParams({ status: "published", limit: "1", order_by: "newest_first" });
   params.append("expand[]", "stats");
-  const postsRes = await fetch(
-    `${BASE}/publications/${PUB_ID}/posts?${params.toString()}`,
-    { headers: { Authorization: `Bearer ${key}` }, cache: "no-store" }
-  );
-  const postsData = await postsRes.json();
+  const url = `${BASE}/publications/${PUB_ID}/posts?${params.toString()}`;
+  const postsRes = await fetch(url, { headers: { Authorization: `Bearer ${key}` }, cache: "no-store" });
+  const rawText = await postsRes.text();
+  if (postsRes.status !== 200) return NextResponse.json({ error: "beehiiv_error", status: postsRes.status, body: rawText.slice(0, 300) }, { status: 500 });
+  const postsData = JSON.parse(rawText);
   const post = postsData?.data?.[0];
-  if (!post) return NextResponse.json({ unique_opens: 0, open_rate: 0, total_sent: 0, web_views: 0, post_title: "" });
+  if (!post) return NextResponse.json({ error: "no_post", raw: rawText.slice(0, 300) });
 
   const email = post?.stats?.email ?? {};
   const web   = post?.stats?.web   ?? {};
