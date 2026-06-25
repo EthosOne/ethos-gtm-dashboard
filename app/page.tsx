@@ -574,46 +574,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Recent signals */}
-            <div style={{ padding: "1.5rem", flex: 1 }}>
-              <div style={{ fontSize: "0.72rem", fontWeight: 600, color: t.textFaint, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
-                Recent Signals
-              </div>
-              {signals.length === 0 ? (
-                <div style={{ color: t.textFaint, fontSize: "0.85rem" }}>No signals yet.</div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {signals.map(s => {
-                    const name = [s.first_name, s.last_name].filter(Boolean).join(" ") || "Unknown";
-                    const badge = s.beehiiv_engaged
-                      ? { label: "Newsletter", bg: "#C9A24B22", fg: "#9A7B1F" }
-                      : { label: "LinkedIn",   bg: "#0A66C222", fg: "#0A66C2" };
-                    return (
-                      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "0.6rem 0.75rem", background: t.surfaceAlt, border: `1px solid ${t.border}`, borderRadius: 10 }}>
-                        <div style={{
-                          width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
-                          background: PILLAR_META["Intent/Signals"].gradient,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          color: "#fff", fontWeight: 700, fontSize: "0.8rem",
-                        }}>
-                          {name.charAt(0).toUpperCase()}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: "0.82rem", fontWeight: 600, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
-                          <div style={{ fontSize: "0.7rem", color: t.textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                            {s.company ?? s.job_title ?? "—"}
-                          </div>
-                        </div>
-                        <span style={{ fontSize: "0.62rem", fontWeight: 700, color: badge.fg, background: badge.bg, padding: "3px 7px", borderRadius: 6, letterSpacing: "0.04em", flexShrink: 0 }}>
-                          {badge.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
             {/* Issues list */}
             {posts.length > 0 && (
               <div style={{ padding: "1.5rem", borderTop: `1px solid ${t.border}` }}>
@@ -673,6 +633,46 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+
+            {/* Recent signals */}
+            <div style={{ padding: "1.5rem", borderTop: `1px solid ${t.border}`, flex: 1 }}>
+              <div style={{ fontSize: "0.72rem", fontWeight: 600, color: t.textFaint, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
+                Recent Signals
+              </div>
+              {signals.length === 0 ? (
+                <div style={{ color: t.textFaint, fontSize: "0.85rem" }}>No signals yet.</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {signals.map(s => {
+                    const name = [s.first_name, s.last_name].filter(Boolean).join(" ") || "Unknown";
+                    const badge = s.beehiiv_engaged
+                      ? { label: "Newsletter", bg: "#C9A24B22", fg: "#9A7B1F" }
+                      : { label: "LinkedIn",   bg: "#0A66C222", fg: "#0A66C2" };
+                    return (
+                      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "0.6rem 0.75rem", background: t.surfaceAlt, border: `1px solid ${t.border}`, borderRadius: 10 }}>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                          background: PILLAR_META["Intent/Signals"].gradient,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          color: "#fff", fontWeight: 700, fontSize: "0.8rem",
+                        }}>
+                          {name.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: "0.82rem", fontWeight: 600, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
+                          <div style={{ fontSize: "0.7rem", color: t.textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {s.company ?? s.job_title ?? "—"}
+                          </div>
+                        </div>
+                        <span style={{ fontSize: "0.62rem", fontWeight: 700, color: badge.fg, background: badge.bg, padding: "3px 7px", borderRadius: 6, letterSpacing: "0.04em", flexShrink: 0 }}>
+                          {badge.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Panel footer */}
             <div style={{ padding: "1.25rem 1.5rem", borderTop: `1px solid ${t.border}` }}>
