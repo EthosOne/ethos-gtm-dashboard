@@ -78,6 +78,17 @@ type Signal = {
   updated_at: string;
 };
 
+type Post = {
+  id: string;
+  title: string;
+  web_url: string | null;
+  publish_date: number | null;
+  total_sent: number;
+  unique_opens: number;
+  open_rate: number;
+  web_views: number;
+};
+
 export default function Dashboard() {
   const [pillars, setPillars]   = useState<Pillar[]>([]);
   const [lastRefresh, setLastRefresh] = useState<string>("");
@@ -89,6 +100,7 @@ export default function Dashboard() {
   const [drilldown, setDrilldown] = useState<"subscribers" | "engaged" | "outreach" | null>(null);
   const [drillItems, setDrillItems] = useState<{ label: string; sub: string }[]>([]);
   const [drillLoading, setDrillLoading] = useState(false);
+  const [posts, setPosts] = useState<Post[]>([]);
 
   // persist theme
   useEffect(() => {
@@ -153,7 +165,7 @@ export default function Dashboard() {
   async function openSignalsPanel() {
     setPanelOpen(true);
     setPanelLoading(true);
-    const [{ count: subs }, { count: eng }, { count: out }, { data: sig }, nlStats] = await Promise.all([
+    const [{ count: subs }, { count: eng }, { count: out }, { data: sig }, nlStats, nlPosts] = await Promise.all([
       supabase.from("twlr_subscribers").select("*", { count: "exact", head: true }),
       supabase.from("contacts").select("*", { count: "exact", head: true }).eq("beehiiv_engaged", true),
       supabase.from("contacts").select("*", { count: "exact", head: true }).eq("instantly_enrolled", true),
@@ -163,6 +175,7 @@ export default function Dashboard() {
         .order("updated_at", { ascending: false })
         .limit(10),
       fetch("/api/newsletter-stats").then(r => r.json()).catch(() => ({})),
+      fetch("/api/newsletter-posts").then(r => r.json()).catch(() => []),
     ]);
     setPulse({
       subscribers: subs ?? 0,
@@ -174,6 +187,7 @@ export default function Dashboard() {
       postTitle:   nlStats.post_title   ?? "",
     });
     setSignals((sig as Signal[]) ?? []);
+    setPosts(Array.isArray(nlPosts) ? (nlPosts as Post[]) : []);
     setPanelLoading(false);
   }
 
@@ -599,6 +613,66 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+
+            {/* Issues list */}
+            {posts.length > 0 && (
+              <div style={{ padding: "1.5rem", borderTop: `1px solid ${t.border}` }}>
+                <div style={{ fontSize: "0.72rem", fontWeight: 600, color: t.textFaint, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
+                  TWLR Issues
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  {posts.map((post, i) => (
+                    <a
+                      key={post.id}
+                      href={post.web_url ?? "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "block",
+                        padding: "0.65rem 0.75rem",
+                        borderRadius: 10,
+                        background: i === 0 ? t.surfaceAlt : "transparent",
+                        border: `1px solid ${i === 0 ? t.border : "transparent"}`,
+                        textDecoration: "none",
+                        transition: "background 0.15s",
+                        marginBottom: 2,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            fontSize: "0.8rem", fontWeight: 600, color: t.text,
+                            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                          }}>
+                            {post.title}
+                          </div>
+                          {post.publish_date && (
+                            <div style={{ fontSize: "0.65rem", color: t.textFaint, marginTop: 1 }}>
+                              {new Date(post.publish_date * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                            </div>
+                          )}
+                        </div>
+                        <i className="bi-box-arrow-up-right" style={{ fontSize: "0.65rem", color: t.textFaint, flexShrink: 0, marginTop: 2 }} />
+                      </div>
+                      <div style={{ display: "flex", gap: 10, marginTop: 6, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: "0.65rem", color: t.textFaint }}>
+                          <span style={{ fontWeight: 700, color: "#8B2332" }}>{post.total_sent.toLocaleString("en-GB")}</span> sent
+                        </span>
+                        <span style={{ fontSize: "0.65rem", color: t.textFaint }}>
+                          <span style={{ fontWeight: 700, color: "#C9A24B" }}>{post.unique_opens.toLocaleString("en-GB")}</span> opens
+                        </span>
+                        <span style={{ fontSize: "0.65rem", color: t.textFaint }}>
+                          <span style={{ fontWeight: 700, color: "#7E9AA8" }}>{post.open_rate.toFixed(0)}%</span> rate
+                        </span>
+                        <span style={{ fontSize: "0.65rem", color: t.textFaint }}>
+                          <span style={{ fontWeight: 700, color: t.accent }}>{post.web_views.toLocaleString("en-GB")}</span> web
+                        </span>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Panel footer */}
             <div style={{ padding: "1.25rem 1.5rem", borderTop: `1px solid ${t.border}` }}>
