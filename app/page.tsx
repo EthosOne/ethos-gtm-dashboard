@@ -86,6 +86,9 @@ export default function Dashboard() {
   const [panelLoading, setPanelLoading] = useState(false);
   const [pulse, setPulse]       = useState({ subscribers: 0, engaged: 0, outreach: 0 });
   const [signals, setSignals]   = useState<Signal[]>([]);
+  const [drilldown, setDrilldown] = useState<"subscribers" | "engaged" | "outreach" | null>(null);
+  const [drillItems, setDrillItems] = useState<{ label: string; sub: string }[]>([]);
+  const [drillLoading, setDrillLoading] = useState(false);
 
   // persist theme
   useEffect(() => {
@@ -115,6 +118,37 @@ export default function Dashboard() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  async function loadDrilldown(type: "subscribers" | "engaged" | "outreach") {
+    if (drilldown === type) { setDrilldown(null); return; }
+    setDrilldown(type);
+    setDrillLoading(true);
+    if (type === "subscribers") {
+      const { data } = await supabase
+        .from("twlr_subscribers").select("email,first_name,last_name,subscribed_at").order("subscribed_at", { ascending: false }).limit(20);
+      setDrillItems((data ?? []).map((r: { email: string; first_name: string | null; last_name: string | null; subscribed_at: string }) => ({
+        label: [r.first_name, r.last_name].filter(Boolean).join(" ") || r.email,
+        sub: r.email !== ([r.first_name, r.last_name].filter(Boolean).join(" ") || r.email)
+          ? `${r.email} · ${new Date(r.subscribed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
+          : new Date(r.subscribed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+      })));
+    } else if (type === "engaged") {
+      const { data } = await supabase
+        .from("contacts").select("first_name,last_name,company,last_event_at").eq("beehiiv_engaged", true).order("last_event_at", { ascending: false, nullsFirst: false }).limit(20);
+      setDrillItems((data ?? []).map((r: { first_name: string | null; last_name: string | null; company: string | null; last_event_at: string | null }) => ({
+        label: [r.first_name, r.last_name].filter(Boolean).join(" ") || "Unknown",
+        sub: [r.company, r.last_event_at ? new Date(r.last_event_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : null].filter(Boolean).join(" · "),
+      })));
+    } else {
+      const { data } = await supabase
+        .from("contacts").select("first_name,last_name,company,stage").eq("instantly_enrolled", true).order("updated_at", { ascending: false }).limit(20);
+      setDrillItems((data ?? []).map((r: { first_name: string | null; last_name: string | null; company: string | null; stage: string | null }) => ({
+        label: [r.first_name, r.last_name].filter(Boolean).join(" ") || "Unknown",
+        sub: [r.company, r.stage].filter(Boolean).join(" · "),
+      })));
+    }
+    setDrillLoading(false);
+  }
 
   async function openSignalsPanel() {
     setPanelOpen(true);
@@ -464,19 +498,47 @@ export default function Dashboard() {
                 TWLR Pulse
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-                {[
-                  { label: "Subscribers", value: pulse.subscribers, color: "#8B2332" },
-                  { label: "Engaged",     value: pulse.engaged,     color: "#C9A24B" },
-                  { label: "In Outreach", value: pulse.outreach,    color: t.accent },
-                ].map(m => (
-                  <div key={m.label} style={{ background: t.surfaceAlt, border: `1px solid ${t.border}`, borderRadius: 10, padding: "0.85rem 0.6rem", textAlign: "center" }}>
+                {([
+                  { key: "subscribers" as const, label: "Subscribers", value: pulse.subscribers, color: "#8B2332" },
+                  { key: "engaged"     as const, label: "Engaged",     value: pulse.engaged,     color: "#C9A24B" },
+                  { key: "outreach"    as const, label: "In Outreach", value: pulse.outreach,    color: t.accent },
+                ]).map(m => (
+                  <div key={m.label} onClick={() => loadDrilldown(m.key)} style={{
+                    background: drilldown === m.key ? `${m.color}18` : t.surfaceAlt,
+                    border: `1px solid ${drilldown === m.key ? m.color + "55" : t.border}`,
+                    borderRadius: 10, padding: "0.85rem 0.6rem", textAlign: "center",
+                    cursor: "pointer", transition: "all 0.15s",
+                  }}>
                     <div style={{ fontSize: "1.5rem", fontWeight: 800, color: m.color, lineHeight: 1 }}>
                       {m.value.toLocaleString("en-GB")}
                     </div>
                     <div style={{ fontSize: "0.66rem", color: t.textMuted, marginTop: 5, fontWeight: 600 }}>{m.label}</div>
+                    <div style={{ fontSize: "0.6rem", color: m.color, marginTop: 3, opacity: 0.8 }}>
+                      {drilldown === m.key ? "▲ hide" : "▼ show"}
+                    </div>
                   </div>
                 ))}
               </div>
+
+              {/* Drill-down list */}
+              {drilldown && (
+                <div style={{ marginTop: 12, background: t.surfaceAlt, border: `1px solid ${t.border}`, borderRadius: 10, overflow: "hidden" }}>
+                  {drillLoading ? (
+                    <div style={{ padding: "0.75rem 1rem", fontSize: "0.8rem", color: t.textMuted }}>Loading…</div>
+                  ) : drillItems.length === 0 ? (
+                    <div style={{ padding: "0.75rem 1rem", fontSize: "0.8rem", color: t.textFaint }}>No records yet.</div>
+                  ) : drillItems.map((item, i) => (
+                    <div key={i} style={{
+                      padding: "0.55rem 1rem",
+                      borderTop: i > 0 ? `1px solid ${t.border}` : undefined,
+                      display: "flex", flexDirection: "column", gap: 1,
+                    }}>
+                      <span style={{ fontSize: "0.8rem", fontWeight: 600, color: t.text }}>{item.label}</span>
+                      {item.sub && <span style={{ fontSize: "0.68rem", color: t.textFaint }}>{item.sub}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Recent signals */}
