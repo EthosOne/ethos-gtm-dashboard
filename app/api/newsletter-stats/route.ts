@@ -7,9 +7,11 @@ export async function GET() {
   const key = process.env.BEEHIIV_API_KEY;
   if (!key) return NextResponse.json({ error: "no key" }, { status: 500 });
 
+  const params = new URLSearchParams({ status: "published", limit: "1", order_by: "newest_first" });
+  params.append("expand[]", "stats");
   const postsRes = await fetch(
-    `${BASE}/publications/${PUB_ID}/posts?status=published&limit=1&order_by=newest_first&expand[]=stats`,
-    { headers: { Authorization: `Bearer ${key}` }, next: { revalidate: 300 } }
+    `${BASE}/publications/${PUB_ID}/posts?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${key}` }, cache: "no-store" }
   );
   const postsData = await postsRes.json();
   const post = postsData?.data?.[0];
