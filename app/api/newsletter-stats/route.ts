@@ -8,26 +8,21 @@ export async function GET() {
   if (!key) return NextResponse.json({ error: "no key" }, { status: 500 });
 
   const postsRes = await fetch(
-    `${BASE}/publications/${PUB_ID}/posts?status=published&limit=1&order_by=newest_first`,
+    `${BASE}/publications/${PUB_ID}/posts?status=published&limit=1&order_by=newest_first&expand[]=stats`,
     { headers: { Authorization: `Bearer ${key}` }, next: { revalidate: 300 } }
   );
   const postsData = await postsRes.json();
   const post = postsData?.data?.[0];
   if (!post) return NextResponse.json({ unique_opens: 0, open_rate: 0, total_sent: 0, web_views: 0, post_title: "" });
 
-  const statsRes = await fetch(
-    `${BASE}/publications/${PUB_ID}/posts/${post.id}/stats`,
-    { headers: { Authorization: `Bearer ${key}` }, next: { revalidate: 300 } }
-  );
-  const statsData = await statsRes.json();
-  const email = statsData?.data?.email ?? {};
-  const web   = statsData?.data?.web   ?? {};
+  const email = post?.stats?.email ?? {};
+  const web   = post?.stats?.web   ?? {};
 
   return NextResponse.json({
     post_title:   post.title,
-    unique_opens: email.total_unique_opened ?? 0,
-    open_rate:    email.open_rate           ?? 0,
-    total_sent:   email.total_sent          ?? 0,
-    web_views:    web.total_web_viewed      ?? 0,
+    unique_opens: email.unique_opens ?? 0,
+    open_rate:    email.open_rate    ?? 0,
+    total_sent:   email.recipients   ?? 0,
+    web_views:    web.views          ?? 0,
   });
 }
