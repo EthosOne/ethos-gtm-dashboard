@@ -84,7 +84,7 @@ export default function Dashboard() {
   const [dark, setDark]         = useState<boolean>(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelLoading, setPanelLoading] = useState(false);
-  const [pulse, setPulse]       = useState({ subscribers: 0, engaged: 0, outreach: 0 });
+  const [pulse, setPulse]       = useState({ subscribers: 0, engaged: 0, outreach: 0, opens: 0, openRate: 0, webViews: 0, postTitle: "" });
   const [signals, setSignals]   = useState<Signal[]>([]);
   const [drilldown, setDrilldown] = useState<"subscribers" | "engaged" | "outreach" | null>(null);
   const [drillItems, setDrillItems] = useState<{ label: string; sub: string }[]>([]);
@@ -153,7 +153,7 @@ export default function Dashboard() {
   async function openSignalsPanel() {
     setPanelOpen(true);
     setPanelLoading(true);
-    const [{ count: subs }, { count: eng }, { count: out }, { data: sig }] = await Promise.all([
+    const [{ count: subs }, { count: eng }, { count: out }, { data: sig }, nlStats] = await Promise.all([
       supabase.from("twlr_subscribers").select("*", { count: "exact", head: true }),
       supabase.from("contacts").select("*", { count: "exact", head: true }).eq("beehiiv_engaged", true),
       supabase.from("contacts").select("*", { count: "exact", head: true }).eq("instantly_enrolled", true),
@@ -162,8 +162,17 @@ export default function Dashboard() {
         .or("beehiiv_engaged.eq.true,stage.eq.Nurture")
         .order("updated_at", { ascending: false })
         .limit(10),
+      fetch("/api/newsletter-stats").then(r => r.json()).catch(() => ({})),
     ]);
-    setPulse({ subscribers: subs ?? 0, engaged: eng ?? 0, outreach: out ?? 0 });
+    setPulse({
+      subscribers: subs ?? 0,
+      engaged:     eng  ?? 0,
+      outreach:    out  ?? 0,
+      opens:       nlStats.unique_opens ?? 0,
+      openRate:    nlStats.open_rate    ?? 0,
+      webViews:    nlStats.web_views    ?? 0,
+      postTitle:   nlStats.post_title   ?? "",
+    });
     setSignals((sig as Signal[]) ?? []);
     setPanelLoading(false);
   }
@@ -497,25 +506,35 @@ export default function Dashboard() {
               <div style={{ fontSize: "0.72rem", fontWeight: 600, color: t.textFaint, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
                 TWLR Pulse
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+              {pulse.postTitle && (
+                <div style={{ fontSize: "0.68rem", color: t.textFaint, marginBottom: 8, fontStyle: "italic" }}>
+                  Latest: {pulse.postTitle.replace(/^Issue \d+:\s*/i, "Issue 001 — ")}
+                </div>
+              )}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
                 {([
-                  { key: "subscribers" as const, label: "Subscribers", value: pulse.subscribers, color: "#8B2332" },
-                  { key: "engaged"     as const, label: "Engaged",     value: pulse.engaged,     color: "#C9A24B" },
-                  { key: "outreach"    as const, label: "In Outreach", value: pulse.outreach,    color: t.accent },
-                ]).map(m => (
-                  <div key={m.label} onClick={() => loadDrilldown(m.key)} style={{
-                    background: drilldown === m.key ? `${m.color}18` : t.surfaceAlt,
-                    border: `1px solid ${drilldown === m.key ? m.color + "55" : t.border}`,
-                    borderRadius: 10, padding: "0.85rem 0.6rem", textAlign: "center",
-                    cursor: "pointer", transition: "all 0.15s",
+                  { key: "subscribers" as const, label: "Subscribers", value: pulse.subscribers,                        sub: "Beehiiv webhook → Supabase",    color: "#8B2332", clickable: true  },
+                  { key: "engaged"     as const, label: "Engaged",     value: pulse.engaged,                            sub: "CRM leads warming up",          color: "#C9A24B", clickable: true  },
+                  { key: "outreach"    as const, label: "In Outreach", value: pulse.outreach,                           sub: "Enrolled in Instantly sequence", color: t.accent,  clickable: true  },
+                  { key: null,                   label: "Opens",       value: pulse.opens, extra: `${pulse.openRate.toFixed(0)}% · ${pulse.webViews} web`, sub: "Unique opens · Beehiiv email", color: "#7E9AA8", clickable: false },
+                ] as { key: "subscribers"|"engaged"|"outreach"|null; label: string; value: number; sub: string; extra?: string; color: string; clickable: boolean }[]).map((m, i) => (
+                  <div key={i} onClick={m.clickable && m.key ? () => loadDrilldown(m.key!) : undefined} style={{
+                    background: m.key && drilldown === m.key ? `${m.color}18` : t.surfaceAlt,
+                    border: `1px solid ${m.key && drilldown === m.key ? m.color + "55" : t.border}`,
+                    borderRadius: 10, padding: "0.85rem 0.75rem",
+                    cursor: m.clickable ? "pointer" : "default", transition: "all 0.15s",
                   }}>
-                    <div style={{ fontSize: "1.5rem", fontWeight: 800, color: m.color, lineHeight: 1 }}>
+                    <div style={{ fontSize: "1.4rem", fontWeight: 800, color: m.color, lineHeight: 1 }}>
                       {m.value.toLocaleString("en-GB")}
                     </div>
-                    <div style={{ fontSize: "0.66rem", color: t.textMuted, marginTop: 5, fontWeight: 600 }}>{m.label}</div>
-                    <div style={{ fontSize: "0.6rem", color: m.color, marginTop: 3, opacity: 0.8 }}>
-                      {drilldown === m.key ? "▲ hide" : "▼ show"}
-                    </div>
+                    <div style={{ fontSize: "0.7rem", color: t.text, marginTop: 5, fontWeight: 700 }}>{m.label}</div>
+                    <div style={{ fontSize: "0.62rem", color: t.textFaint, marginTop: 2 }}>{m.sub}</div>
+                    {m.extra && <div style={{ fontSize: "0.62rem", color: m.color, marginTop: 3, fontWeight: 600 }}>{m.extra}</div>}
+                    {m.clickable && m.key && (
+                      <div style={{ fontSize: "0.58rem", color: m.color, marginTop: 4, opacity: 0.7 }}>
+                        {drilldown === m.key ? "▲ hide" : "▼ show"}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
