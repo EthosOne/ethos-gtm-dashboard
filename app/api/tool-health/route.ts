@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 async function checkInstantly() {
   try {
     const res = await fetch("https://api.instantly.ai/api/v2/accounts?limit=5", {
@@ -120,5 +123,8 @@ export async function GET() {
     checkBeehiiv(),
   ]);
 
-  return NextResponse.json({ instantly, n8n, beehiiv, ts: Date.now() });
+  return NextResponse.json(
+    { instantly, n8n, beehiiv, ts: Date.now() },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
