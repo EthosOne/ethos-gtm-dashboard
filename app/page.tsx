@@ -133,7 +133,10 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/tool-health").then(r => r.json()).then(setToolHealth).catch(() => {});
+    const fetchHealth = () => fetch("/api/tool-health").then(r => r.json()).then(setToolHealth).catch(() => {});
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 60_000);
+    return () => clearInterval(interval);
   }, []);
 
   async function loadDrilldown(type: "subscribers" | "engaged" | "outreach") {
