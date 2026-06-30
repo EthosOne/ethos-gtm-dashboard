@@ -17,6 +17,7 @@ async function checkInstantly() {
       label: warmupActive ? `Warmup active · ${score}% health` : "Warmup paused",
       score,
       warmupActive,
+      url: "https://app.instantly.ai",
     };
   } catch {
     return { status: "error", label: "Unreachable" };
@@ -65,6 +66,7 @@ async function checkN8N() {
       status: active === total ? "ok" : active > 0 ? "warn" : "error",
       label: `${active}/${total} workflows active`,
       workflows: results,
+      url: process.env.N8N_ADMIN_URL ?? "#",
     };
   } catch {
     return { status: "error", label: "Unreachable" };
@@ -74,7 +76,7 @@ async function checkN8N() {
 async function checkBeehiiv() {
   try {
     const res = await fetch(
-      `https://api.beehiiv.com/v2/publications/${process.env.BEEHIIV_PUBLICATION_ID}/posts?limit=1&status=confirmed`,
+      `https://api.beehiiv.com/v2/publications/${process.env.BEEHIIV_PUBLICATION_ID}/posts?limit=1&order_by=publish_date&direction=desc`,
       {
         headers: { Authorization: `Bearer ${process.env.BEEHIIV_API_KEY}` },
         next: { revalidate: 0 },
@@ -84,10 +86,15 @@ async function checkBeehiiv() {
     const data = await res.json();
     const last = data.data?.[0];
     if (!last) return { status: "warn", label: "No posts found" };
-    const date = new Date(last.publish_at * 1000).toLocaleDateString("en-GB", {
+    const date = new Date((last.publish_at ?? last.created_at) * 1000).toLocaleDateString("en-GB", {
       day: "numeric", month: "short", year: "numeric",
     });
-    return { status: "ok", label: `Last issue: ${last.subject_line?.slice(0, 40) ?? "—"}`, date };
+    return {
+      status: "ok",
+      label: `Last: ${last.subject_line?.slice(0, 35) ?? "—"}`,
+      date,
+      url: last.web_url ?? `https://app.beehiiv.com/publications/${process.env.BEEHIIV_PUBLICATION_ID}/posts`,
+    };
   } catch {
     return { status: "error", label: "Unreachable" };
   }

@@ -344,41 +344,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Tool Health */}
-        {toolHealth && (
-          <div style={{ marginBottom: "1.5rem", background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, padding: "0.9rem 1.25rem" }}>
-            <div style={{ fontSize: "0.68rem", fontWeight: 700, color: t.textFaint, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 10 }}>
-              Tool Health
-            </div>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {[
-                { key: "instantly", icon: "bi-envelope-check-fill", name: "Instantly" },
-                { key: "n8n",       icon: "bi-diagram-3-fill",      name: "n8n" },
-                { key: "beehiiv",   icon: "bi-newspaper",           name: "Beehiiv" },
-              ].map(({ key, icon, name }) => {
-                const tool = (toolHealth as Record<string, { status: string; label: string }>)[key];
-                const color = tool?.status === "ok" ? "#7A8A5C" : tool?.status === "warn" ? "#E8B66A" : "#C1573B";
-                return (
-                  <div key={key} title={tool?.label ?? "—"} style={{
-                    display: "flex", alignItems: "center", gap: 7,
-                    background: t.surfaceAlt, border: `1px solid ${t.border}`,
-                    borderRadius: 8, padding: "6px 12px",
-                    fontSize: "0.75rem", fontWeight: 600, color: t.text,
-                    cursor: "default",
-                  }}>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block", flexShrink: 0 }} />
-                    <i className={`bi ${icon}`} style={{ color, fontSize: "0.8rem" }} />
-                    <span>{name}</span>
-                    <span style={{ color: t.textFaint, fontWeight: 400, fontSize: "0.7rem", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {tool?.label ?? "—"}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Divider */}
         <div style={{ height: 1, background: t.border, marginBottom: "2rem" }} />
 
@@ -479,6 +444,54 @@ export default function Dashboard() {
             );
           })}
         </div>
+
+        {/* Tool Health */}
+        {toolHealth && (
+          <div style={{ marginTop: "2rem", background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, padding: "0.9rem 1.25rem" }}>
+            <div style={{ fontSize: "0.68rem", fontWeight: 700, color: t.textFaint, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 10 }}>
+              Tool Health
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {[
+                { key: "instantly", icon: "bi-envelope-check-fill", name: "Instantly", fallbackHref: "https://app.instantly.ai" },
+                { key: "n8n",       icon: "bi-diagram-3-fill",      name: "n8n",       fallbackHref: "#" },
+                { key: "beehiiv",   icon: "bi-newspaper",           name: "Beehiiv",   fallbackHref: "https://app.beehiiv.com" },
+              ].map(({ key, icon, name, fallbackHref }) => {
+                const tool = (toolHealth as Record<string, { status: string; label: string; url?: string }>)[key];
+                const color = tool?.status === "ok" ? "#7A8A5C" : tool?.status === "warn" ? "#E8B66A" : "#C1573B";
+                const link = tool?.url ?? fallbackHref;
+                const inner = (
+                  <>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block", flexShrink: 0 }} />
+                    <i className={`bi ${icon}`} style={{ color, fontSize: "0.8rem" }} />
+                    <span>{name}</span>
+                    <span style={{ color: t.textFaint, fontWeight: 400, fontSize: "0.7rem", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {tool?.label ?? "—"}
+                    </span>
+                    <i className="bi bi-box-arrow-up-right" style={{ fontSize: "0.6rem", color: t.textFaint, marginLeft: 2, flexShrink: 0 }} />
+                  </>
+                );
+                const sharedStyle: React.CSSProperties = {
+                  display: "flex", alignItems: "center", gap: 7,
+                  background: t.surfaceAlt, border: `1px solid ${t.border}`,
+                  borderRadius: 8, padding: "6px 12px",
+                  fontSize: "0.75rem", fontWeight: 600, color: t.text,
+                  textDecoration: "none",
+                  cursor: "pointer",
+                };
+                return link ? (
+                  <a key={key} href={link} target="_blank" rel="noopener noreferrer" title={tool?.label ?? "—"} style={sharedStyle}>
+                    {inner}
+                  </a>
+                ) : (
+                  <div key={key} title={tool?.label ?? "—"} style={{ ...sharedStyle, cursor: "default" }}>
+                    {inner}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div style={{
