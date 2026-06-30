@@ -94,12 +94,17 @@ async function checkBeehiiv() {
     const data = await res.json();
     const last = data.data?.[0];
     if (!last) return { status: "warn", label: "No posts found" };
-    const date = new Date((last.publish_at ?? last.created_at) * 1000).toLocaleDateString("en-GB", {
+    const publishedAt = (last.publish_at ?? last.created_at) * 1000;
+    const daysSince = Math.floor((Date.now() - publishedAt) / (1000 * 60 * 60 * 24));
+    const date = new Date(publishedAt).toLocaleDateString("en-GB", {
       day: "numeric", month: "short", year: "numeric",
     });
+    const stale = daysSince > 14;
     return {
-      status: "ok",
-      label: `Last: ${last.subject_line?.slice(0, 35) ?? "—"}`,
+      status: stale ? "warn" : "ok",
+      label: stale
+        ? `No issue in ${daysSince}d — last: ${last.subject_line?.slice(0, 25) ?? "—"}`
+        : `Last: ${last.subject_line?.slice(0, 35) ?? "—"}`,
       date,
       url: last.web_url ?? `https://app.beehiiv.com/publications/${process.env.BEEHIIV_PUBLICATION_ID}/posts`,
     };
