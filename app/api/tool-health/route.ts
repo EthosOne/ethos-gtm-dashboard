@@ -10,14 +10,22 @@ async function checkInstantly() {
     const data = await res.json();
     const account = data.items?.[0];
     if (!account) return { status: "error", label: "No account found" };
-    const warmupActive = account.warmup_status === 1;
+    const warmupEnabled = account.warmup_status === 1;
+    const accountActive = account.status === 1;  // status=2 means paused
     const score = account.stat_warmup_score ?? 0;
+    const running = warmupEnabled && accountActive;
+    const toolStatus = !warmupEnabled ? "error"
+                     : !accountActive ? "warn"
+                     : score >= 80    ? "ok"
+                     :                  "warn";
     return {
-      status: warmupActive && score >= 80 ? "ok" : warmupActive ? "warn" : "error",
-      label: warmupActive ? `Warmup active · ${score}% health` : "Warmup paused",
+      status: toolStatus,
+      label: !warmupEnabled ? "Warmup disabled"
+           : !accountActive ? `Warmup paused · ${score}% health`
+           : `Warmup active · ${score}% health`,
       score,
-      warmupActive,
-      url: "https://app.instantly.ai",
+      warmupActive: running,
+      url: "https://app.instantly.ai/app/accounts",
     };
   } catch {
     return { status: "error", label: "Unreachable" };
