@@ -31,6 +31,7 @@ type Contact = {
   list_name: string | null;
   beehiiv_engaged: boolean | null;
   affiliate_code: string | null;
+  first_touch_source: { utm_source?: string; utm_medium?: string; utm_campaign?: string } | null;
 };
 
 const LIGHT = {
