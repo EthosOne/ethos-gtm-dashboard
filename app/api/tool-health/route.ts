@@ -5,29 +5,54 @@ export const revalidate = 0;
 
 async function checkInstantly() {
   try {
-    const res = await fetch("https://api.instantly.ai/api/v2/accounts?limit=5", {
+    const res = await fetch("https://api.instantly.ai/api/v2/accounts?limit=100", {
       headers: { Authorization: `Bearer ${process.env.INSTANTLY_API_KEY}` },
       next: { revalidate: 0 },
     });
     if (!res.ok) return { status: "error", label: "API error" };
     const data = await res.json();
-    const account = data.items?.[0];
-    if (!account) return { status: "error", label: "No account found" };
-    const warmupEnabled = account.warmup_status === 1;
-    const accountActive = account.status === 1;  // status=2 means paused
-    const score = account.stat_warmup_score ?? 0;
-    const running = warmupEnabled && accountActive;
-    const toolStatus = !warmupEnabled ? "error"
-                     : !accountActive ? "warn"
-                     : score >= 80    ? "ok"
-                     :                  "warn";
+    const accounts = data.items ?? [];
+    if (accounts.length === 0) return { status: "error", label: "No account found" };
+
+    // status=2 means paused. warmup_status=1 means warmup enabled.
+    const rank = { ok: 0, warn: 1, error: 2 };
+    const senders = accounts.map((account: {
+      email?: string;
+      warmup_status?: number;
+      status?: number;
+      stat_warmup_score?: number;
+    }) => {
+      const warmupEnabled = account.warmup_status === 1;
+      const accountActive = account.status === 1;
+      const score = account.stat_warmup_score ?? 0;
+      const status: "ok" | "warn" | "error" =
+          !warmupEnabled ? "error"
+        : !accountActive ? "warn"
+        : score >= 80    ? "ok"
+        :                  "warn";
+      return { email: account.email ?? "—", status, score, running: warmupEnabled && accountActive };
+    });
+
+    const warming = senders.filter((s: { running: boolean }) => s.running);
+    const avgScore = warming.length
+      ? Math.round(warming.reduce((a: number, s: { score: number }) => a + s.score, 0) / warming.length)
+      : 0;
+    const worst = senders.reduce(
+      (acc: "ok" | "warn" | "error", s: { status: "ok" | "warn" | "error" }) =>
+        rank[s.status] > rank[acc] ? s.status : acc,
+      "ok" as "ok" | "warn" | "error"
+    );
+
     return {
-      status: toolStatus,
-      label: !warmupEnabled ? "Warmup disabled"
-           : !accountActive ? `Warmup paused · ${score}% health`
-           : `Warmup active · ${score}% health`,
-      score,
-      warmupActive: running,
+      status: worst,
+      label: senders.length === 1
+        ? (senders[0].status === "error" ? "Warmup disabled"
+          : senders[0].running ? `Warmup active · ${avgScore}% health`
+          : `Warmup paused · ${senders[0].score}% health`)
+        : `${warming.length}/${senders.length} warming · ${avgScore}% avg`,
+      score: avgScore,
+      warmupActive: warming.length === senders.length,
+      senders,
       url: "https://app.instantly.ai/app/accounts",
     };
   } catch {
