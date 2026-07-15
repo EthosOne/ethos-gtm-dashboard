@@ -25,7 +25,9 @@ export async function updateSession(request: NextRequest) {
 
   const isPublic = request.nextUrl.pathname.startsWith("/subscribe") ||
     request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/auth");
+    request.nextUrl.pathname.startsWith("/auth") ||
+    request.nextUrl.pathname.startsWith("/api/newsletter-stats") ||
+    request.nextUrl.pathname.startsWith("/api/newsletter-posts");
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

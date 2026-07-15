@@ -45,6 +45,11 @@ export default function AnalyticsPage() {
   const [loading, setLoading]         = useState(true);
   const [dark, setDark]               = useState(false);
   const [width, setWidth]             = useState(1200);
+  const [twlrCount, setTwlrCount]     = useState(0);
+  const [engagedCount, setEngagedCount] = useState(0);
+  const [enrolledCount, setEnrolledCount] = useState(0);
+  const [signalDays, setSignalDays]   = useState<{ date: string; count: number }[]>([]);
+  const [nlStats, setNlStats]         = useState<{ unique_opens: number; open_rate: number; web_views: number; total_sent: number; post_title: string }>({ unique_opens: 0, open_rate: 0, web_views: 0, total_sent: 0, post_title: "" });
 
   useEffect(() => {
     setWidth(window.innerWidth);
@@ -70,6 +75,48 @@ export default function AnalyticsPage() {
         counts[s] = count ?? 0;
       }));
       setStageCounts(counts);
+
+      const { count: twlr } = await supabase
+        .from("twlr_subscribers").select("*", { count: "exact", head: true });
+      setTwlrCount(twlr ?? 0);
+
+      const { count: bEngaged } = await supabase
+        .from("contacts").select("*", { count: "exact", head: true }).eq("beehiiv_engaged", true);
+      setEngagedCount(bEngaged ?? 0);
+
+      const { count: enrolled } = await supabase
+        .from("contacts").select("*", { count: "exact", head: true }).eq("instantly_enrolled", true);
+      setEnrolledCount(enrolled ?? 0);
+
+      const nlRes = await fetch("/api/newsletter-stats").then(r => r.json()).catch(() => ({}));
+      setNlStats({
+        unique_opens: nlRes.unique_opens ?? 0,
+        open_rate:    nlRes.open_rate    ?? 0,
+        web_views:    nlRes.web_views    ?? 0,
+        total_sent:   nlRes.total_sent   ?? 0,
+        post_title:   nlRes.post_title   ?? "",
+      });
+
+      const since = new Date();
+      since.setDate(since.getDate() - 6);
+      const { data: signals } = await supabase
+        .from("contacts")
+        .select("last_event_at")
+        .eq("beehiiv_engaged", true)
+        .gte("last_event_at", since.toISOString());
+      const dayMap: Record<string, number> = {};
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(); d.setDate(d.getDate() - (6 - i));
+        dayMap[d.toISOString().slice(0, 10)] = 0;
+      }
+      (signals ?? []).forEach(r => {
+        if (r.last_event_at) {
+          const day = (r.last_event_at as string).slice(0, 10);
+          if (day in dayMap) dayMap[day]++;
+        }
+      });
+      setSignalDays(Object.entries(dayMap).map(([date, count]) => ({ date: date.slice(5), count })));
+
       setLoading(false);
     }
     load();
@@ -100,7 +147,7 @@ export default function AnalyticsPage() {
   ];
 
   return (
-    <main style={{ background: t.bg, minHeight: "100vh", transition: "background 0.3s" }}>
+    <main style={{ background: t.bg, minHeight: "100vh", transition: "background 0.3s", overflowX: "hidden" }}>
       <div style={{ maxWidth: 1040, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 
         {/* Header */}
@@ -136,7 +183,7 @@ export default function AnalyticsPage() {
               borderRadius: 999, padding: "6px 14px", fontSize: "0.78rem",
               fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", fontFamily: "inherit",
             }}>
-              {dark ? "☀ Light" : "◑ Dark"}
+              <i className={dark ? "bi bi-sun-fill" : "bi bi-moon-fill"} style={{ marginRight: 5, color: t.toggleText }} />{dark ? "Light" : "Dark"}
             </button>
           </div>
         </div>
@@ -304,6 +351,82 @@ export default function AnalyticsPage() {
                 </tbody>
               </table>
               </div>
+            </div>
+
+            {/* Newsletter Signal section */}
+            <div style={{ height: 1, background: t.border, margin: "2rem 0" }} />
+
+            <div style={{ marginBottom: "1.25rem" }}>
+              <h2 style={{ fontSize: "1rem", fontWeight: 700, color: t.text, margin: 0, letterSpacing: "-0.01em" }}>
+                Newsletter Signal · TWLR
+              </h2>
+              <p style={{ color: t.textMuted, marginTop: 3, fontSize: "0.8rem" }}>
+                Subscriber reach · Engagement · Outreach pipeline
+              </p>
+            </div>
+
+            {/* Latest issue stats */}
+            {nlStats.post_title && (
+              <div style={{ marginBottom: "1rem" }}>
+                <div style={{ fontSize: "0.72rem", fontWeight: 600, color: t.textFaint, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+                  Latest Issue
+                </div>
+                <div style={{ fontSize: "0.82rem", color: t.textMuted, marginBottom: 12, fontStyle: "italic" }}>
+                  {nlStats.post_title}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "0.75rem", marginBottom: "1.5rem" }}>
+                  {[
+                    { label: "Sent",      value: fmt(nlStats.total_sent),                        color: "#8B2332" },
+                    { label: "Opens",     value: fmt(nlStats.unique_opens),                      color: "#C9A24B" },
+                    { label: "Open Rate", value: `${nlStats.open_rate.toFixed(0)}%`,             color: "#7E9AA8" },
+                    { label: "Web Views", value: fmt(nlStats.web_views),                         color: t.accent  },
+                  ].map(k => (
+                    <div key={k.label} style={{ background: t.surfaceAlt, border: `1px solid ${t.border}`, borderRadius: 12, padding: "0.9rem 1rem" }}>
+                      <div style={{ fontSize: "0.68rem", fontWeight: 600, color: t.textFaint, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>{k.label}</div>
+                      <div style={{ fontSize: "1.6rem", fontWeight: 800, color: k.color, lineHeight: 1 }}>{k.value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
+              {[
+                { label: "TWLR Subscribers", value: fmt(twlrCount),      sub: "signed up via newsletter",        color: "#8B2332" },
+                { label: "Newsletter Engaged", value: fmt(engagedCount),  sub: "opened or clicked an email",      color: "#C9A24B" },
+                { label: "Engagement Rate",    value: twlrCount > 0 ? `${(engagedCount / twlrCount * 100).toFixed(1)}%` : "—", sub: "of TWLR subscribers engaged", color: "#7A8A5C" },
+                { label: "In Outreach",        value: fmt(enrolledCount), sub: "enrolled in Instantly sequence",  color: t.accent },
+              ].map(k => (
+                <div key={k.label} style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14, padding: "1.25rem" }}>
+                  <div style={{ fontSize: "0.75rem", fontWeight: 600, color: t.textFaint, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+                    {k.label}
+                  </div>
+                  <div style={{ fontSize: "2rem", fontWeight: 800, color: k.color, letterSpacing: "-0.03em", lineHeight: 1 }}>
+                    {k.value}
+                  </div>
+                  <div style={{ fontSize: "0.78rem", color: t.textMuted, marginTop: 6 }}>{k.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14, padding: "1.5rem", overflow: "hidden" }}>
+              <div style={{ fontWeight: 700, fontSize: "0.9rem", color: t.text, marginBottom: "1.25rem" }}>
+                Engagement Signals — Last 7 Days
+              </div>
+              {signalDays.every(d => d.count === 0) ? (
+                <div style={{ color: t.textFaint, fontSize: "0.85rem", padding: "1rem 0" }}>
+                  No engagement signals in the last 7 days yet.
+                </div>
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <BarChart width={isMobile ? 320 : 640} height={180} data={signalDays} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: t.textMuted }} tickLine={false} axisLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: t.textFaint }} tickLine={false} axisLine={false} allowDecimals={false} />
+                    <Tooltip contentStyle={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, fontSize: 12, color: t.text }} cursor={{ fill: t.border }} />
+                    <Bar dataKey="count" fill="#C9A24B" radius={[6, 6, 0, 0]} name="Signals" />
+                  </BarChart>
+                </div>
+              )}
             </div>
 
           </>

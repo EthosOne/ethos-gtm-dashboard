@@ -28,6 +28,8 @@ export type Contact = {
   created_at: string;
   updated_at: string;
   demo_scheduled: string | null;
+  affiliate_code: string | null;
+  first_touch_source: { utm_source?: string; utm_medium?: string; utm_campaign?: string } | null;
 };
 
 type Props = {
@@ -54,6 +56,7 @@ const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_schedul
   email: "", phone: "", first_name: "", last_name: "", company: "", company_domain: "",
   job_title: "", linkedin_url: "", city: "", country: "", stage: "Cold",
   twlr_subscriber: false, outreach_status: "active", list_name: null, notes: "", icp_score: null, icp_tier: null, beehiiv_engaged: false,
+  affiliate_code: null, first_touch_source: null,
 };
 
 export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, onDeleted }: Props) {
@@ -85,6 +88,8 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
         notes: contact.notes ?? "",
         icp_score: contact.icp_score,
         icp_tier: contact.icp_tier ?? "",
+        affiliate_code: contact.affiliate_code ?? null,
+        first_touch_source: contact.first_touch_source ?? null,
       });
     } else {
       setForm({ ...EMPTY });
@@ -253,6 +258,18 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
               <div style={{ ...inputStyle, opacity: 0.65, cursor: "default", color: t.textMuted }}>
                 {contact.list_name}
               </div>
+            </div>
+          )}
+
+          {/* Affiliate referral — read only */}
+          {contact?.affiliate_code && (
+            <div style={{ padding: "10px 14px", background: "#7A8A5C22", borderRadius: 10, border: "1px solid #7A8A5C55" }}>
+              <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "#3F5030" }}>★ Referred by {contact.affiliate_code}</div>
+              {contact.first_touch_source && (
+                <div style={{ fontSize: "0.72rem", color: t.textFaint, marginTop: 2 }}>
+                  {[contact.first_touch_source.utm_source, contact.first_touch_source.utm_medium, contact.first_touch_source.utm_campaign].filter(Boolean).join(" / ")}
+                </div>
+              )}
             </div>
           )}
 

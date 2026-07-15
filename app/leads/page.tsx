@@ -30,6 +30,8 @@ type Contact = {
   outreach_status: string | null;
   list_name: string | null;
   beehiiv_engaged: boolean | null;
+  affiliate_code: string | null;
+  first_touch_source: { utm_source?: string; utm_medium?: string; utm_campaign?: string } | null;
 };
 
 const LIGHT = {
@@ -229,7 +231,7 @@ export default function LeadsPage() {
   }
 
   return (
-    <main style={{ background: t.bg, minHeight: "100vh", padding: 0, transition: "background 0.3s" }}>
+    <main style={{ background: t.bg, minHeight: "100vh", padding: 0, transition: "background 0.3s", overflowX: "hidden" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 
         {/* Header */}
@@ -282,7 +284,7 @@ export default function LeadsPage() {
               fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em",
               transition: "background 0.3s, color 0.3s", fontFamily: "inherit",
             }}>
-              {dark ? "☀ Light" : "◑ Dark"}
+              <i className={dark ? "bi bi-sun-fill" : "bi bi-moon-fill"} style={{ marginRight: 5, color: t.toggleText }} />{dark ? "Light" : "Dark"}
             </button>
           </div>
         </div>
@@ -513,6 +515,13 @@ export default function LeadsPage() {
                               padding: "1px 6px", fontSize: "0.62rem", fontWeight: 700,
                               letterSpacing: "0.04em", whiteSpace: "nowrap",
                             }}>GDPR</span>
+                          )}
+                          {c.affiliate_code && (
+                            <span title={`Referred via ${c.affiliate_code}`} style={{
+                              background: "#7A8A5C22", color: "#3F5030", borderRadius: 999,
+                              padding: "1px 7px", fontSize: "0.62rem", fontWeight: 700,
+                              letterSpacing: "0.04em", whiteSpace: "nowrap",
+                            }}>★ {c.affiliate_code}</span>
                           )}
                         </div>
                         <div style={{ fontSize: "0.72rem", color: t.textFaint, marginTop: 2 }}>{c.email}</div>

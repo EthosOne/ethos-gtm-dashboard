@@ -55,7 +55,7 @@ export default function SubscribePage() {
             background: t.surface, border: `1px solid ${t.border}`,
             borderRadius: 20, padding: "2.5rem 2rem",
           }}>
-            <div style={{ fontSize: "2rem", marginBottom: 12 }}>✓</div>
+            <i className="bi bi-check-circle-fill" style={{ fontSize: "2rem", marginBottom: 12, display: "block", color: "#7A8A5C" }} />
             <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: t.text, margin: "0 0 8px", letterSpacing: "-0.02em" }}>
               You&apos;re in.
             </h2>
@@ -73,7 +73,7 @@ export default function SubscribePage() {
   }
 
   return (
-    <main style={{ background: t.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem 1.5rem" }}>
+    <main style={{ background: t.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem 1.5rem", overflowX: "hidden" }}>
       <div style={{ maxWidth: 480, width: "100%" }}>
 
         <img src="/ethos-wordmark.png" alt="Ethos One"
@@ -99,7 +99,7 @@ export default function SubscribePage() {
             The Work-Life Reporter
           </h1>
           <p style={{ color: t.textMuted, fontSize: "0.875rem", lineHeight: 1.6, margin: "0 0 28px" }}>
-            GTM insights, pipeline frameworks, and outbound tactics — delivered every week to founders and revenue teams.
+            The newsletter for people who take work culture seriously. Five culture plays, three micro-playbooks, and one leader spotlight — every week.
           </p>
 
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
