@@ -75,6 +75,7 @@ type Signal = {
   stage: string | null;
   beehiiv_engaged: boolean | null;
   linkedin_url: string | null;
+  guest_signup_at: string | null;
   updated_at: string;
 };
 
@@ -178,7 +179,7 @@ export default function Dashboard() {
       supabase.from("contacts").select("*", { count: "exact", head: true }).eq("beehiiv_engaged", true),
       supabase.from("contacts").select("*", { count: "exact", head: true }).eq("instantly_enrolled", true),
       supabase.from("contacts")
-        .select("id,first_name,last_name,company,job_title,stage,beehiiv_engaged,linkedin_url,updated_at")
+        .select("id,first_name,last_name,company,job_title,stage,beehiiv_engaged,linkedin_url,guest_signup_at,updated_at")
         .or("beehiiv_engaged.eq.true,stage.eq.Nurture")
         .order("updated_at", { ascending: false })
         .limit(10),
@@ -701,9 +702,13 @@ export default function Dashboard() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {signals.map(s => {
                     const name = [s.first_name, s.last_name].filter(Boolean).join(" ") || "Unknown";
-                    const badge = s.beehiiv_engaged
+                    const badge = s.guest_signup_at
+                      ? { label: "Guest Signup", bg: "#E8B66A22", fg: "#8A5A00" }
+                      : s.beehiiv_engaged
                       ? { label: "Newsletter", bg: "#C9A24B22", fg: "#9A7B1F" }
-                      : { label: "LinkedIn",   bg: "#0A66C222", fg: "#0A66C2" };
+                      : s.linkedin_url
+                      ? { label: "LinkedIn",   bg: "#0A66C222", fg: "#0A66C2" }
+                      : { label: "Nurture",    bg: "#9D9BAA22", fg: "#5A5870" };
                     return (
                       <a key={s.id} href={`/leads?open=${s.id}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "0.6rem 0.75rem", background: t.surfaceAlt, border: `1px solid ${t.border}`, borderRadius: 10, textDecoration: "none", cursor: "pointer" }}>
                         <div style={{
