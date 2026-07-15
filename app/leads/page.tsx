@@ -24,6 +24,7 @@ type Contact = {
   country: string | null;
   stage: string;
   source: string;
+  guest_signup_at: string | null;
   demo_scheduled: string | null;
   icp_tier: string | null;
   created_at: string;
@@ -537,6 +538,13 @@ export default function LeadsPage() {
                               padding: "1px 7px", fontSize: "0.62rem", fontWeight: 700,
                               letterSpacing: "0.04em", whiteSpace: "nowrap",
                             }}>★ {c.affiliate_code}</span>
+                          )}
+                          {c.guest_signup_at && (
+                            <span title={`Signed up to join an episode on ${new Date(c.guest_signup_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`} style={{
+                              background: "#E8B66A22", color: "#8A5A00", borderRadius: 999,
+                              padding: "1px 7px", fontSize: "0.62rem", fontWeight: 700,
+                              letterSpacing: "0.04em", whiteSpace: "nowrap",
+                            }}>Guest Signup</span>
                           )}
                         </div>
                         <div style={{ fontSize: "0.72rem", color: t.textFaint, marginTop: 2 }}>{c.email}</div>

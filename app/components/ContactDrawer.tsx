@@ -30,6 +30,7 @@ export type Contact = {
   demo_scheduled: string | null;
   affiliate_code: string | null;
   first_touch_source: { utm_source?: string; utm_medium?: string; utm_campaign?: string } | null;
+  guest_signup_at: string | null;
 };
 
 type Props = {
@@ -56,7 +57,7 @@ const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_schedul
   email: "", phone: "", first_name: "", last_name: "", company: "", company_domain: "",
   job_title: "", linkedin_url: "", city: "", country: "", stage: "Cold",
   twlr_subscriber: false, outreach_status: "active", list_name: null, notes: "", icp_score: null, icp_tier: null, beehiiv_engaged: false,
-  affiliate_code: null, first_touch_source: null,
+  affiliate_code: null, first_touch_source: null, guest_signup_at: null,
 };
 
 export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, onDeleted }: Props) {
@@ -90,6 +91,7 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
         icp_tier: contact.icp_tier ?? "",
         affiliate_code: contact.affiliate_code ?? null,
         first_touch_source: contact.first_touch_source ?? null,
+        guest_signup_at: contact.guest_signup_at ?? null,
       });
     } else {
       setForm({ ...EMPTY });
@@ -250,6 +252,16 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
               {ALL_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
+
+          {/* Guest signup — read only */}
+          {contact?.guest_signup_at && (
+            <div>
+              <label style={labelStyle}>Guest Signup</label>
+              <div style={{ ...inputStyle, opacity: 0.65, cursor: "default", color: t.textMuted }}>
+                Signed up to join an episode on {new Date(contact.guest_signup_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+              </div>
+            </div>
+          )}
 
           {/* List Name — read only */}
           {contact?.list_name && (
