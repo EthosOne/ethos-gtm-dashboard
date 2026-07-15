@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await supabase.from("contacts").insert({
       email: body.email.toLowerCase().trim(),
+      phone: body.phone ?? null,
       first_name: body.first_name ?? null,
       last_name: body.last_name ?? null,
       company: body.company ?? null,

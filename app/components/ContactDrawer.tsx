@@ -7,6 +7,7 @@ const ALL_STAGES = ["Cold", "Nurture", "Qualified", "Demo Booked", "Closed Won",
 export type Contact = {
   id: number;
   email: string;
+  phone: string | null;
   first_name: string | null;
   last_name: string | null;
   company: string | null;
@@ -50,7 +51,7 @@ const DARK = {
 };
 
 const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_scheduled"> = {
-  email: "", first_name: "", last_name: "", company: "", company_domain: "",
+  email: "", phone: "", first_name: "", last_name: "", company: "", company_domain: "",
   job_title: "", linkedin_url: "", city: "", country: "", stage: "Cold",
   twlr_subscriber: false, outreach_status: "active", list_name: null, notes: "", icp_score: null, icp_tier: null, beehiiv_engaged: false,
 };
@@ -67,6 +68,7 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
     if (contact) {
       setForm({
         email: contact.email ?? "",
+        phone: contact.phone ?? "",
         first_name: contact.first_name ?? "",
         last_name: contact.last_name ?? "",
         company: contact.company ?? "",
@@ -180,6 +182,12 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
               placeholder="email@company.com"
             />
             {!isNew && <div style={{ fontSize: "0.68rem", color: t.textFaint, marginTop: 4 }}>Email is the unique ID — cannot be changed</div>}
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label style={labelStyle}>Phone</label>
+            <input value={form.phone ?? ""} onChange={e => set("phone", e.target.value)} style={inputStyle} placeholder="+1 555 000 0000" />
           </div>
 
           {/* Name row */}
