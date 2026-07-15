@@ -705,7 +705,7 @@ export default function Dashboard() {
                       ? { label: "Newsletter", bg: "#C9A24B22", fg: "#9A7B1F" }
                       : { label: "LinkedIn",   bg: "#0A66C222", fg: "#0A66C2" };
                     return (
-                      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "0.6rem 0.75rem", background: t.surfaceAlt, border: `1px solid ${t.border}`, borderRadius: 10 }}>
+                      <a key={s.id} href={`/leads?open=${s.id}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "0.6rem 0.75rem", background: t.surfaceAlt, border: `1px solid ${t.border}`, borderRadius: 10, textDecoration: "none", cursor: "pointer" }}>
                         <div style={{
                           width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
                           background: PILLAR_META["Intent/Signals"].gradient,
@@ -723,7 +723,7 @@ export default function Dashboard() {
                         <span style={{ fontSize: "0.62rem", fontWeight: 700, color: badge.fg, background: badge.bg, padding: "3px 7px", borderRadius: 6, letterSpacing: "0.04em", flexShrink: 0 }}>
                           {badge.label}
                         </span>
-                      </div>
+                      </a>
                     );
                   })}
                 </div>

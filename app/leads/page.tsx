@@ -99,6 +99,19 @@ export default function LeadsPage() {
     if (saved === "dark") setDark(true);
   }, []);
 
+  useEffect(() => {
+    const openId = new URLSearchParams(window.location.search).get("open");
+    if (!openId) return;
+    (async () => {
+      const { data } = await supabase.from("contacts").select("*").eq("id", Number(openId)).maybeSingle();
+      if (data) {
+        setDrawerContact(data as unknown as DrawerContact);
+        setDrawerNew(false);
+        setDrawerOpen(true);
+      }
+    })();
+  }, []);
+
   function toggleTheme() {
     setDark(prev => {
       localStorage.setItem("ethos-theme", !prev ? "dark" : "light");
