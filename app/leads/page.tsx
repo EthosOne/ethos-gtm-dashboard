@@ -13,6 +13,7 @@ const supabase = createClient(
 type Contact = {
   id: number;
   email: string;
+  phone: string | null;
   first_name: string | null;
   last_name: string | null;
   company: string | null;
@@ -440,6 +441,7 @@ export default function LeadsPage() {
                 <tr style={{ background: t.surfaceAlt, borderBottom: `1px solid ${t.border}` }}>
                   {([
                     { label: "Name",     field: "first_name" },
+                    { label: "Phone",    field: "phone" },
                     { label: "Company",  field: "company" },
                     { label: "Role",     field: "job_title" },
                     { label: "Stage",    field: "stage" },
@@ -531,6 +533,9 @@ export default function LeadsPage() {
                             <i className="bi-linkedin" style={{ marginRight: 3 }} />LinkedIn
                           </a>
                         )}
+                      </td>
+                      <td style={{ padding: "11px 16px", color: t.textMuted, fontSize: "0.82rem", whiteSpace: "nowrap" }}>
+                        {c.phone ?? "—"}
                       </td>
                       <td style={{ padding: "11px 16px" }}>
                         <div style={{ color: t.text }}>{c.company ?? "—"}</div>
