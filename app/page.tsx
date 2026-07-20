@@ -181,6 +181,7 @@ export default function Dashboard() {
       supabase.from("contacts")
         .select("id,first_name,last_name,company,job_title,stage,beehiiv_engaged,linkedin_url,guest_signup_at,updated_at")
         .or("beehiiv_engaged.eq.true,stage.eq.Nurture")
+        .not("first_name", "is", null)
         .order("updated_at", { ascending: false })
         .limit(10),
       fetch("/api/newsletter-stats").then(r => r.json()).catch(() => ({})),
