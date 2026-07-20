@@ -69,6 +69,30 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [subscribing, setSubscribing] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(false);
+
+  useEffect(() => {
+    if (!contact?.twlr_subscriber || !contact?.beehiiv_subscription_id) return;
+    let cancelled = false;
+    setCheckingStatus(true);
+    fetch("/api/leads/check-subscription", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: contact.id, beehiiv_subscription_id: contact.beehiiv_subscription_id }),
+    })
+      .then(res => res.json())
+      .then(json => {
+        if (cancelled) return;
+        if (json.active === false) {
+          setForm(prev => ({ ...prev, twlr_subscriber: false }));
+          onSaved({ ...contact, twlr_subscriber: false });
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setCheckingStatus(false); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contact?.id]);
 
   async function subscribeToTwlr() {
     if (!contact) return;
@@ -310,7 +334,9 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
             <div>
               <div style={{ fontSize: "0.83rem", fontWeight: 600, color: t.text }}>TWLR Subscriber</div>
               <div style={{ fontSize: "0.72rem", color: t.textFaint }}>
-                {form.twlr_subscriber ? "Subscribed for real in Beehiiv" : "The Work-Life Reporter newsletter"}
+                {checkingStatus
+                  ? "Checking status…"
+                  : form.twlr_subscriber ? "Subscribed for real in Beehiiv" : "The Work-Life Reporter newsletter"}
               </div>
             </div>
             {form.twlr_subscriber ? (
