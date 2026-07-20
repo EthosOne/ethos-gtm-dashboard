@@ -580,7 +580,7 @@ export default function Dashboard() {
               </div>
               {pulse.postTitle && (
                 <div style={{ fontSize: "0.68rem", color: t.textFaint, marginBottom: 8, fontStyle: "italic" }}>
-                  Latest: {pulse.postTitle.replace(/^Issue \d+:\s*/i, "Issue 001 — ")}
+                  Latest: {pulse.postTitle.replace(/^(Issue \d+):\s*/i, "$1 — ")}
                 </div>
               )}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
