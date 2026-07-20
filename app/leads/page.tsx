@@ -29,6 +29,7 @@ type Contact = {
   icp_tier: string | null;
   created_at: string;
   twlr_subscriber: boolean | null;
+  beehiiv_subscription_id: string | null;
   outreach_status: string | null;
   list_name: string | null;
   beehiiv_engaged: boolean | null;

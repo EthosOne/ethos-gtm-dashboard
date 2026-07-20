@@ -19,6 +19,7 @@ export type Contact = {
   stage: string;
   source: string;
   twlr_subscriber: boolean | null;
+  beehiiv_subscription_id: string | null;
   outreach_status: string | null;
   list_name: string | null;
   beehiiv_engaged: boolean | null;
@@ -56,7 +57,7 @@ const DARK = {
 const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_scheduled"> = {
   email: "", phone: "", first_name: "", last_name: "", company: "", company_domain: "",
   job_title: "", linkedin_url: "", city: "", country: "", stage: "Cold",
-  twlr_subscriber: false, outreach_status: "active", list_name: null, notes: "", icp_score: null, icp_tier: null, beehiiv_engaged: false,
+  twlr_subscriber: false, beehiiv_subscription_id: null, outreach_status: "active", list_name: null, notes: "", icp_score: null, icp_tier: null, beehiiv_engaged: false,
   affiliate_code: null, first_touch_source: null, guest_signup_at: null,
 };
 
@@ -67,6 +68,24 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [subscribing, setSubscribing] = useState(false);
+
+  async function subscribeToTwlr() {
+    if (!contact) return;
+    setSubscribing(true);
+    setError(null);
+    const res = await fetch("/api/leads/update-twlr", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: contact.id, twlr_subscriber: true }),
+    });
+    const json = await res.json();
+    setSubscribing(false);
+    if (!res.ok) { setError(json.error ?? "Could not subscribe."); return; }
+    set("twlr_subscriber", true);
+    set("beehiiv_subscription_id", json.beehiiv_subscription_id ?? null);
+    onSaved({ ...contact, twlr_subscriber: true, beehiiv_subscription_id: json.beehiiv_subscription_id ?? null });
+  }
 
   useEffect(() => {
     if (contact) {
@@ -83,6 +102,7 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
         country: contact.country ?? "",
         stage: contact.stage ?? "Cold",
         twlr_subscriber: contact.twlr_subscriber ?? false,
+        beehiiv_subscription_id: contact.beehiiv_subscription_id ?? null,
         outreach_status: contact.outreach_status ?? "active",
         beehiiv_engaged: contact.beehiiv_engaged ?? false,
         list_name: contact.list_name ?? null,
@@ -285,26 +305,37 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
             </div>
           )}
 
-          {/* TWLR toggle */}
+          {/* TWLR real subscription — no toggle, either subscribe for real or manage in Beehiiv */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: t.surfaceAlt, borderRadius: 10, border: `1px solid ${t.border}` }}>
             <div>
               <div style={{ fontSize: "0.83rem", fontWeight: 600, color: t.text }}>TWLR Subscriber</div>
-              <div style={{ fontSize: "0.72rem", color: t.textFaint }}>The Work-Life Reporter newsletter</div>
+              <div style={{ fontSize: "0.72rem", color: t.textFaint }}>
+                {form.twlr_subscriber ? "Subscribed for real in Beehiiv" : "The Work-Life Reporter newsletter"}
+              </div>
             </div>
-            <button
-              onClick={() => set("twlr_subscriber", !form.twlr_subscriber)}
-              style={{
-                width: 44, height: 24, borderRadius: 999, border: "none", cursor: "pointer",
-                background: form.twlr_subscriber ? "#F4A988" : t.border,
-                position: "relative", transition: "background 0.2s", flexShrink: 0,
-              }}
-            >
-              <span style={{
-                position: "absolute", top: 3, left: form.twlr_subscriber ? 22 : 3,
-                width: 18, height: 18, borderRadius: "50%", background: "#fff",
-                transition: "left 0.2s", display: "block",
-              }} />
-            </button>
+            {form.twlr_subscriber ? (
+              <a
+                href={`https://app.beehiiv.com/subscribers?search=${encodeURIComponent(form.email)}`}
+                target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: "0.72rem", fontWeight: 700, color: "#C1573B", textDecoration: "none", whiteSpace: "nowrap" }}
+              >
+                Manage in Beehiiv →
+              </a>
+            ) : (
+              <button
+                onClick={subscribeToTwlr}
+                disabled={subscribing || !form.email}
+                title={!form.email ? "Contact needs an email first" : ""}
+                style={{
+                  background: "#F4A988", color: "#3F2A1E", border: "none", borderRadius: 999,
+                  padding: "5px 12px", fontSize: "0.72rem", fontWeight: 700, fontFamily: "inherit",
+                  cursor: subscribing || !form.email ? "not-allowed" : "pointer",
+                  opacity: subscribing || !form.email ? 0.6 : 1, flexShrink: 0,
+                }}
+              >
+                {subscribing ? "Subscribing…" : "Subscribe now"}
+              </button>
+            )}
           </div>
 
           {/* Beehiiv Engaged toggle */}
