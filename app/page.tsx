@@ -146,12 +146,12 @@ export default function Dashboard() {
     setDrillLoading(true);
     if (type === "subscribers") {
       const { data } = await supabase
-        .from("twlr_subscribers").select("email,first_name,last_name,subscribed_at").order("subscribed_at", { ascending: false }).limit(20);
-      setDrillItems((data ?? []).map((r: { email: string; first_name: string | null; last_name: string | null; subscribed_at: string }) => ({
+        .from("contacts").select("email,first_name,last_name,created_at").eq("twlr_subscriber", true).order("created_at", { ascending: false }).limit(20);
+      setDrillItems((data ?? []).map((r: { email: string; first_name: string | null; last_name: string | null; created_at: string }) => ({
         label: [r.first_name, r.last_name].filter(Boolean).join(" ") || r.email,
         sub: r.email !== ([r.first_name, r.last_name].filter(Boolean).join(" ") || r.email)
-          ? `${r.email} · ${new Date(r.subscribed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
-          : new Date(r.subscribed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+          ? `${r.email} · ${new Date(r.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
+          : new Date(r.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
       })));
     } else if (type === "engaged") {
       const { data } = await supabase
@@ -175,7 +175,7 @@ export default function Dashboard() {
     setPanelOpen(true);
     setPanelLoading(true);
     const [{ count: subs }, { count: eng }, { count: out }, { data: sig }, nlStats, nlPosts] = await Promise.all([
-      supabase.from("twlr_subscribers").select("*", { count: "exact", head: true }),
+      supabase.from("contacts").select("*", { count: "exact", head: true }).eq("twlr_subscriber", true),
       supabase.from("contacts").select("*", { count: "exact", head: true }).eq("beehiiv_engaged", true),
       supabase.from("contacts").select("*", { count: "exact", head: true }).eq("instantly_enrolled", true),
       supabase.from("contacts")
