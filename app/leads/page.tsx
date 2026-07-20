@@ -399,9 +399,9 @@ export default function LeadsPage() {
             GDPR Hold{(() => { const n = gdprOnly ? total : gdprCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{gdprOnly && " ✓"}
           </button>
           <button onClick={() => { setJoOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setLinkedinOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
-            background: joOnly ? "#8B233222" : t.surface,
-            border: `1px solid ${joOnly ? "#8B233266" : t.border}`,
-            color: joOnly ? "#8B2332" : t.textMuted,
+            background: joOnly ? (dark ? "#E0607A22" : "#8B233222") : t.surface,
+            border: `1px solid ${joOnly ? (dark ? "#E0607A66" : "#8B233266") : t.border}`,
+            color: joOnly ? (dark ? "#E0607A" : "#8B2332") : t.textMuted,
             borderRadius: 999, padding: "5px 13px", cursor: "pointer",
             fontSize: "0.78rem", fontWeight: 700, fontFamily: "inherit",
             letterSpacing: "0.03em", transition: "all 0.15s",
