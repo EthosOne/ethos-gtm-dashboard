@@ -20,6 +20,7 @@ export type Contact = {
   source: string;
   twlr_subscriber: boolean | null;
   beehiiv_subscription_id: string | null;
+  twlr_unsubscribed_at: string | null;
   outreach_status: string | null;
   list_name: string | null;
   beehiiv_engaged: boolean | null;
@@ -57,7 +58,7 @@ const DARK = {
 const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_scheduled"> = {
   email: "", phone: "", first_name: "", last_name: "", company: "", company_domain: "",
   job_title: "", linkedin_url: "", city: "", country: "", stage: "Cold",
-  twlr_subscriber: false, beehiiv_subscription_id: null, outreach_status: "active", list_name: null, notes: "", icp_score: null, icp_tier: null, beehiiv_engaged: false,
+  twlr_subscriber: false, beehiiv_subscription_id: null, twlr_unsubscribed_at: null, outreach_status: "active", list_name: null, notes: "", icp_score: null, icp_tier: null, beehiiv_engaged: false,
   affiliate_code: null, first_touch_source: null, guest_signup_at: null,
 };
 
@@ -84,8 +85,9 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
       .then(json => {
         if (cancelled) return;
         if (json.active === false) {
-          setForm(prev => ({ ...prev, twlr_subscriber: false }));
-          onSaved({ ...contact, twlr_subscriber: false });
+          const unsubAt = json.unsubscribed_on ?? new Date().toISOString();
+          setForm(prev => ({ ...prev, twlr_subscriber: false, twlr_unsubscribed_at: unsubAt }));
+          onSaved({ ...contact, twlr_subscriber: false, twlr_unsubscribed_at: unsubAt });
         }
       })
       .catch(() => {})
@@ -108,7 +110,8 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
     if (!res.ok) { setError(json.error ?? "Could not subscribe."); return; }
     set("twlr_subscriber", true);
     set("beehiiv_subscription_id", json.beehiiv_subscription_id ?? null);
-    onSaved({ ...contact, twlr_subscriber: true, beehiiv_subscription_id: json.beehiiv_subscription_id ?? null });
+    set("twlr_unsubscribed_at", null);
+    onSaved({ ...contact, twlr_subscriber: true, beehiiv_subscription_id: json.beehiiv_subscription_id ?? null, twlr_unsubscribed_at: null });
   }
 
   useEffect(() => {
@@ -127,6 +130,7 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
         stage: contact.stage ?? "Cold",
         twlr_subscriber: contact.twlr_subscriber ?? false,
         beehiiv_subscription_id: contact.beehiiv_subscription_id ?? null,
+        twlr_unsubscribed_at: contact.twlr_unsubscribed_at ?? null,
         outreach_status: contact.outreach_status ?? "active",
         beehiiv_engaged: contact.beehiiv_engaged ?? false,
         list_name: contact.list_name ?? null,
@@ -333,10 +337,14 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: t.surfaceAlt, borderRadius: 10, border: `1px solid ${t.border}` }}>
             <div>
               <div style={{ fontSize: "0.83rem", fontWeight: 600, color: t.text }}>TWLR Subscriber</div>
-              <div style={{ fontSize: "0.72rem", color: t.textFaint }}>
+              <div style={{ fontSize: "0.72rem", color: form.twlr_unsubscribed_at && !form.twlr_subscriber ? "#C1573B" : t.textFaint }}>
                 {checkingStatus
                   ? "Checking status…"
-                  : form.twlr_subscriber ? "Subscribed for real in Beehiiv" : "The Work-Life Reporter newsletter"}
+                  : form.twlr_subscriber
+                  ? "Subscribed for real in Beehiiv"
+                  : form.twlr_unsubscribed_at
+                  ? `Unsubscribed on ${new Date(form.twlr_unsubscribed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
+                  : "The Work-Life Reporter newsletter"}
               </div>
             </div>
             {form.twlr_subscriber ? (

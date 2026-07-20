@@ -28,14 +28,18 @@ export async function POST(req: NextRequest) {
   const beehiivData = await beehiivRes.json();
   const status: string | undefined = beehiivData?.data?.status;
   const active = status === "active";
+  const unsubscribedOn: string | null = beehiivData?.data?.unsubscribed_on ?? null;
 
   if (!active) {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
-    await supabase.from("contacts").update({ twlr_subscriber: false }).eq("id", id);
+    await supabase
+      .from("contacts")
+      .update({ twlr_subscriber: false, twlr_unsubscribed_at: unsubscribedOn ?? new Date().toISOString() })
+      .eq("id", id);
   }
 
-  return NextResponse.json({ active, status });
+  return NextResponse.json({ active, status, unsubscribed_on: unsubscribedOn });
 }

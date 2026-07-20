@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 
   const { error } = await supabase
     .from("contacts")
-    .update({ twlr_subscriber: true, beehiiv_subscription_id: subscriptionId })
+    .update({ twlr_subscriber: true, beehiiv_subscription_id: subscriptionId, twlr_unsubscribed_at: null })
     .eq("id", id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
