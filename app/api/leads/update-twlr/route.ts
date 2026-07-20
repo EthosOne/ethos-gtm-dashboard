@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
       first_name: contact.first_name,
       reactivate_existing: true,
       send_welcome_email: true,
+      utm_source: "crm",
     }),
   });
 
