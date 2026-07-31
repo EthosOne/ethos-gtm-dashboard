@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 
-const GDPR_CAMPAIGN_ID = "8d460ebf-0930-4793-8dd5-006665efcfb9"; // TWLR — GDPR 2500 Cold Outreach
+// TWLR GDPR cold outreach — one campaign per country, same body/sequence
+const COLD_CAMPAIGN_IDS = [
+  "8d460ebf-0930-4793-8dd5-006665efcfb9", // USA
+  "f6911f54-a1fe-4cbb-ad16-2ef94e72964b", // UK
+  "d7c2653c-10bb-4e8a-a0ec-cb7d3c4ce88f", // Australia
+  "5c47c8fd-9f58-4949-857b-76d2d91ee2d0", // Canada
+];
 const BASE = "https://api.instantly.ai/api/v2";
 
 export async function GET() {
@@ -15,15 +21,18 @@ export async function GET() {
   if (!res.ok) return NextResponse.json(empty);
 
   const data: Record<string, unknown>[] = await res.json();
-  const campaign = data.find((c) => c.campaign_id === GDPR_CAMPAIGN_ID);
-  if (!campaign) return NextResponse.json(empty);
+  const campaigns = data.filter((c) => COLD_CAMPAIGN_IDS.includes(c.campaign_id as string));
+  if (campaigns.length === 0) return NextResponse.json(empty);
+
+  const sum = (field: string) =>
+    campaigns.reduce((acc, c) => acc + Number(c[field] ?? 0), 0);
 
   return NextResponse.json({
-    sent: campaign.emails_sent_count ?? 0,
-    replies: campaign.reply_count ?? 0,
-    clicks: campaign.link_click_count ?? 0,
-    bounced: campaign.bounced_count ?? 0,
-    leads: campaign.leads_count ?? 0,
-    contacted: campaign.contacted_count ?? 0,
+    sent: sum("emails_sent_count"),
+    replies: sum("reply_count"),
+    clicks: sum("link_click_count"),
+    bounced: sum("bounced_count"),
+    leads: sum("leads_count"),
+    contacted: sum("contacted_count"),
   });
 }

@@ -1,8 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 const ALL_STAGES = ["Cold", "Nurture", "Qualified", "Demo Booked", "Closed Won", "Closed Lost"];
+
+type EpisodeBuilderSubmission = {
+  episode_topic: string | null;
+  description_notes: string | null;
+  interactive_elements: string | null;
+  quote_testimonial: string | null;
+  created_at: string;
+};
 
 export type Contact = {
   id: number;
@@ -33,6 +47,7 @@ export type Contact = {
   affiliate_code: string | null;
   first_touch_source: { utm_source?: string; utm_medium?: string; utm_campaign?: string } | null;
   guest_signup_at: string | null;
+  episode_builder_submitted_at: string | null;
 };
 
 type Props = {
@@ -55,7 +70,7 @@ const DARK = {
   textFaint: "#5C5A6A", accent: "#F4A988",
 };
 
-const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_scheduled"> = {
+const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_scheduled"|"episode_builder_submitted_at"> = {
   email: "", phone: "", first_name: "", last_name: "", company: "", company_domain: "",
   job_title: "", linkedin_url: "", city: "", country: "", stage: "Cold",
   twlr_subscriber: false, beehiiv_subscription_id: null, twlr_unsubscribed_at: null, outreach_status: "active", list_name: null, notes: "", icp_score: null, icp_tier: null, beehiiv_engaged: false,
@@ -71,6 +86,7 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
   const [error, setError] = useState<string | null>(null);
   const [subscribing, setSubscribing] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
+  const [episodeSubmission, setEpisodeSubmission] = useState<EpisodeBuilderSubmission | null>(null);
 
   useEffect(() => {
     if (!contact?.twlr_subscriber || !contact?.beehiiv_subscription_id) return;
@@ -147,6 +163,19 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
     setConfirmDelete(false);
     setError(null);
   }, [contact, isNew]);
+
+  useEffect(() => {
+    setEpisodeSubmission(null);
+    if (!contact?.episode_builder_submitted_at || !contact.email) return;
+    supabase
+      .from("episode_builder")
+      .select("episode_topic, description_notes, interactive_elements, quote_testimonial, created_at")
+      .eq("email", contact.email)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setEpisodeSubmission(data));
+  }, [contact]);
 
   function set(field: string, value: unknown) {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -308,6 +337,33 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
               <div style={{ ...inputStyle, opacity: 0.65, cursor: "default", color: t.textMuted }}>
                 Signed up to join an episode on {new Date(contact.guest_signup_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
               </div>
+            </div>
+          )}
+
+          {/* Episode Builder submission — read only */}
+          {contact?.episode_builder_submitted_at && (
+            <div style={{ padding: "10px 14px", background: "#C9A24B22", borderRadius: 10, border: "1px solid #C9A24B55" }}>
+              <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "#9A6A00" }}>
+                🎙 Episode Builder — submitted {new Date(contact.episode_builder_submitted_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+              </div>
+              {episodeSubmission ? (
+                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                  {episodeSubmission.episode_topic && (
+                    <div><b style={{ fontSize: "0.72rem", color: t.textFaint }}>Topic:</b> <span style={{ fontSize: "0.78rem", color: t.text }}>{episodeSubmission.episode_topic}</span></div>
+                  )}
+                  {episodeSubmission.description_notes && (
+                    <div><b style={{ fontSize: "0.72rem", color: t.textFaint }}>Description:</b> <span style={{ fontSize: "0.78rem", color: t.text }}>{episodeSubmission.description_notes}</span></div>
+                  )}
+                  {episodeSubmission.interactive_elements && (
+                    <div><b style={{ fontSize: "0.72rem", color: t.textFaint }}>Interactive:</b> <span style={{ fontSize: "0.78rem", color: t.text }}>{episodeSubmission.interactive_elements}</span></div>
+                  )}
+                  {episodeSubmission.quote_testimonial && (
+                    <div><b style={{ fontSize: "0.72rem", color: t.textFaint }}>Quote:</b> <span style={{ fontSize: "0.78rem", color: t.text, fontStyle: "italic" }}>&ldquo;{episodeSubmission.quote_testimonial}&rdquo;</span></div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ fontSize: "0.72rem", color: t.textFaint, marginTop: 4 }}>Loading submission…</div>
+              )}
             </div>
           )}
 
