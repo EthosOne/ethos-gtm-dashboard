@@ -184,7 +184,8 @@ export default function EpisodeSubmissions() {
                 {c && (
                   <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${t.border}`, display: "flex", gap: 16, flexWrap: "wrap" }}>
                     {REMINDER_STEPS.map(step => {
-                      const sent = !!c[step.field];
+                      const sentAt = c[step.field] as string | null;
+                      const sent = !!sentAt;
                       const key = `${s.email}-${step.field}`;
                       return (
                         <label key={step.field} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", opacity: updating === key ? 0.5 : 1 }}>
@@ -194,7 +195,15 @@ export default function EpisodeSubmissions() {
                             onChange={() => toggleReminder(s.email, step.field)}
                             disabled={updating === key}
                           />
-                          <span style={{ fontSize: "0.75rem", color: sent ? t.text : t.textFaint }}>{step.label}</span>
+                          <span style={{ fontSize: "0.75rem", color: sent ? t.text : t.textFaint }}>
+                            {step.label}
+                            {sent && (
+                              <span style={{ color: t.textFaint }}>
+                                {" — "}
+                                {new Date(sentAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            )}
+                          </span>
                         </label>
                       );
                     })}
