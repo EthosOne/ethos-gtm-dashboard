@@ -298,6 +298,13 @@ export default function LeadsPage() {
             }}>
               Analytics
             </Link>
+            <Link href="/episode-submissions" style={{
+              background: "none", border: `1px solid ${t.border}`, color: t.textMuted,
+              textDecoration: "none", borderRadius: 999, padding: "6px 14px",
+              fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.04em",
+            }}>
+              Episode Submissions
+            </Link>
             <button onClick={() => { setDrawerNew(true); setDrawerContact(null); setDrawerOpen(true); }} style={{
               background: t.accent, color: "#fff", border: "none",
               borderRadius: 999, padding: "7px 16px", fontSize: "0.78rem",
