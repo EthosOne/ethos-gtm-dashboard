@@ -519,7 +519,10 @@ export default function Dashboard() {
           fontSize: "0.75rem",
           color: t.textFaint,
         }}>
-          <span>Ethos One · Company OS · 2026</span>
+          <span>
+            Ethos One · Company OS · 2026 ·{" "}
+            <a href="/test" style={{ color: t.textFaint, textDecoration: "underline" }}>Ops Tools</a>
+          </span>
           <span style={{
             width: 8,
             height: 8,
