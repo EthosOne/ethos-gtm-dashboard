@@ -12,6 +12,7 @@ export type Contact = {
   last_name: string | null;
   company: string | null;
   company_domain: string | null;
+  raw_payload: { employee_count?: number | null; employee_count_range?: { start?: number; end?: number } | null; industry?: string | null } | null;
   job_title: string | null;
   linkedin_url: string | null;
   city: string | null;
@@ -57,7 +58,7 @@ const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_schedul
   email: "", phone: "", first_name: "", last_name: "", company: "", company_domain: "",
   job_title: "", linkedin_url: "", city: "", country: "", stage: "Cold",
   twlr_subscriber: false, outreach_status: "active", list_name: null, notes: "", icp_score: null, icp_tier: null, beehiiv_engaged: false,
-  affiliate_code: null, first_touch_source: null, guest_signup_at: null,
+  affiliate_code: null, first_touch_source: null, guest_signup_at: null, raw_payload: null,
 };
 
 export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, onDeleted }: Props) {
@@ -92,6 +93,7 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
         affiliate_code: contact.affiliate_code ?? null,
         first_touch_source: contact.first_touch_source ?? null,
         guest_signup_at: contact.guest_signup_at ?? null,
+        raw_payload: contact.raw_payload ?? null,
       });
     } else {
       setForm({ ...EMPTY });
@@ -220,6 +222,18 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
               <input value={form.company_domain ?? ""} onChange={e => set("company_domain", e.target.value)} style={inputStyle} placeholder="acme.com" />
             </div>
           </div>
+
+          {/* Company size (read-only, from enrichment) */}
+          {contact?.raw_payload?.employee_count != null && (
+            <div>
+              <label style={labelStyle}>Company Size</label>
+              <div style={{ ...inputStyle, display: "flex", alignItems: "center", background: t.surfaceAlt, color: t.textMuted }}>
+                {contact.raw_payload.employee_count} employees
+                {contact.raw_payload.industry ? ` · ${contact.raw_payload.industry}` : ""}
+                <span style={{ marginLeft: 8, fontSize: "0.72rem", opacity: 0.7 }}>(from enrichment, read-only)</span>
+              </div>
+            </div>
+          )}
 
           {/* Role */}
           <div>

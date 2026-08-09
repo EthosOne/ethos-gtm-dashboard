@@ -259,7 +259,7 @@ export default function KanbanPage() {
     await Promise.all(STAGES.map(async stage => {
       const { data, count } = await supabase
         .from("contacts")
-        .select("id,email,first_name,last_name,company,company_domain,job_title,linkedin_url,city,country,stage,twlr_subscriber,outreach_status,notes,icp_score,icp_tier,created_at,updated_at,demo_scheduled,source", { count: "exact" })
+        .select("id,email,first_name,last_name,company,company_domain,job_title,linkedin_url,city,country,stage,twlr_subscriber,outreach_status,notes,icp_score,icp_tier,created_at,updated_at,demo_scheduled,source,raw_payload", { count: "exact" })
         .eq("stage", stage)
         .order("created_at", { ascending: false })
         .limit(CARDS_PER_STAGE);
