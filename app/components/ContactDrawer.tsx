@@ -4,6 +4,23 @@ import { useState, useEffect } from "react";
 
 const ALL_STAGES = ["Cold", "Nurture", "Qualified", "Demo Booked", "Closed Won", "Closed Lost"];
 
+// Known raw_payload keys across every enrichment source we run today (Apify company
+// lookup, Trigify signals). Kept as a fixed, ordered list so every contact's drawer
+// renders the same fields — missing ones show greyed instead of the row vanishing.
+// Add new keys here as new enrichment sources are wired up.
+const ENRICHMENT_FIELDS: { key: string; label: string }[] = [
+  { key: "website", label: "Website" },
+  { key: "linkedin_company_url", label: "LinkedIn Company Url" },
+  { key: "industry", label: "Industry" },
+  { key: "enriched_via", label: "Enriched Via" },
+  { key: "enriched_at", label: "Enriched At" },
+  { key: "trigify_search", label: "Trigify Search" },
+  { key: "post_url", label: "Post Url" },
+  { key: "published_at", label: "Published At" },
+  { key: "engagement", label: "Engagement" },
+  { key: "collected_at", label: "Collected At" },
+];
+
 export type Contact = {
   id: number;
   email: string;
@@ -223,47 +240,51 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
             </div>
           </div>
 
-          {/* Company size — dedicated field, most-used enrichment value for SME decisions */}
-          {contact?.raw_payload?.employee_count != null && (
-            <div>
-              <label style={labelStyle}>Company Size</label>
+          {/* Company size — dedicated field, most-used enrichment value for SME decisions.
+              Always rendered (same shape for every contact) — greyed placeholder when empty,
+              so the drawer layout doesn't shift/shapeshift between contacts. */}
+          <div>
+            <label style={labelStyle}>Company Size</label>
+            {contact?.raw_payload?.employee_count != null ? (
               <div style={{ ...inputStyle, display: "flex", alignItems: "center", background: t.surfaceAlt, color: t.textMuted }}>
                 {String(contact.raw_payload.employee_count)} employees
                 {contact.raw_payload.industry ? ` · ${String(contact.raw_payload.industry)}` : ""}
                 <span style={{ marginLeft: 8, fontSize: "0.72rem", opacity: 0.7 }}>(from enrichment, read-only)</span>
               </div>
-            </div>
-          )}
-
-          {/* Enrichment data (read-only) — shows whatever OTHER fields exist in raw_payload,
-              since different sources (Apify company enrichment, Trigify signals, etc.)
-              populate different keys. employee_count/employee_count_range are shown above
-              in their own field, excluded here to avoid duplication. */}
-          {contact?.raw_payload && Object.entries(contact.raw_payload).some(([k, v]) => !["employee_count", "employee_count_range"].includes(k) && v != null && v !== "") && (
-            <div>
-              <label style={labelStyle}>Enrichment Data</label>
-              <div style={{ ...inputStyle, height: "auto", background: t.surfaceAlt, color: t.textMuted, padding: "8px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
-                {Object.entries(contact.raw_payload).map(([key, value]) => {
-                  if (["employee_count", "employee_count_range"].includes(key)) return null;
-                  if (value == null || value === "") return null;
-                  const label = key.replace(/_/g, " ").replace(/\b\w/g, ch => ch.toUpperCase());
-                  const display = typeof value === "object" ? JSON.stringify(value) : String(value);
-                  const isUrl = typeof value === "string" && /^https?:\/\//.test(value);
-                  return (
-                    <div key={key} style={{ fontSize: "0.78rem", display: "flex", gap: 6 }}>
-                      <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{label}:</span>
-                      {isUrl ? (
-                        <a href={value as string} target="_blank" rel="noreferrer" style={{ color: t.accent, wordBreak: "break-all" }}>{display}</a>
-                      ) : (
-                        <span style={{ wordBreak: "break-word" }}>{display}</span>
-                      )}
-                    </div>
-                  );
-                })}
-                <span style={{ fontSize: "0.68rem", opacity: 0.6, marginTop: 2 }}>(read-only, from enrichment)</span>
+            ) : (
+              <div style={{ ...inputStyle, display: "flex", alignItems: "center", background: "repeating-linear-gradient(45deg, transparent, transparent 6px, " + t.border + " 6px, " + t.border + " 7px)", color: t.textFaint, fontStyle: "italic" }}>
+                No enrichment data
               </div>
+            )}
+          </div>
+
+          {/* Enrichment data (read-only) — fixed set of known fields across every
+              enrichment source we run (Apify company lookup, Trigify signals), always
+              rendered in the same order so every contact's drawer has the same shape.
+              Missing fields show a greyed/hatched "dummy" placeholder instead of the
+              row disappearing — makes it obvious at a glance what's real vs unfilled. */}
+          <div>
+            <label style={labelStyle}>Enrichment Data</label>
+            <div style={{ ...inputStyle, height: "auto", background: t.surfaceAlt, color: t.textMuted, padding: "8px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
+              {ENRICHMENT_FIELDS.map(({ key, label }) => {
+                const value = contact?.raw_payload?.[key];
+                const has = value != null && value !== "";
+                const display = has ? (typeof value === "object" ? JSON.stringify(value) : String(value)) : "—";
+                const isUrl = has && typeof value === "string" && /^https?:\/\//.test(value);
+                return (
+                  <div key={key} style={{ fontSize: "0.78rem", display: "flex", gap: 6, opacity: has ? 1 : 0.45 }}>
+                    <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{label}:</span>
+                    {isUrl ? (
+                      <a href={value as string} target="_blank" rel="noreferrer" style={{ color: t.accent, wordBreak: "break-all" }}>{display}</a>
+                    ) : (
+                      <span style={{ wordBreak: "break-word", fontStyle: has ? "normal" : "italic" }}>{display}</span>
+                    )}
+                  </div>
+                );
+              })}
+              <span style={{ fontSize: "0.68rem", opacity: 0.6, marginTop: 2 }}>(read-only, from enrichment — greyed rows have no data yet)</span>
             </div>
-          )}
+          </div>
 
           {/* Role */}
           <div>
