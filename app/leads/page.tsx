@@ -34,6 +34,7 @@ type Contact = {
   beehiiv_engaged: boolean | null;
   affiliate_code: string | null;
   first_touch_source: { utm_source?: string; utm_medium?: string; utm_campaign?: string } | null;
+  raw_payload: { employee_count?: number | null } | null;
 };
 
 const LIGHT = {
@@ -539,6 +540,13 @@ export default function LeadsPage() {
                               padding: "1px 7px", fontSize: "0.62rem", fontWeight: 700,
                               letterSpacing: "0.04em", whiteSpace: "nowrap",
                             }}>in</span>
+                          )}
+                          {c.icp_tier === "SME" && (
+                            <span title={c.raw_payload?.employee_count ? `${c.raw_payload.employee_count} employees` : undefined} style={{
+                              background: "#7A8A5C22", color: "#3F5030", borderRadius: 999,
+                              padding: "1px 7px", fontSize: "0.62rem", fontWeight: 700,
+                              letterSpacing: "0.04em", whiteSpace: "nowrap",
+                            }}>SME</span>
                           )}
                           {c.outreach_status === "gdpr_hold" && (
                             <span style={{
