@@ -223,14 +223,28 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
             </div>
           </div>
 
-          {/* Enrichment data (read-only) — shows whatever fields exist in raw_payload,
+          {/* Company size — dedicated field, most-used enrichment value for SME decisions */}
+          {contact?.raw_payload?.employee_count != null && (
+            <div>
+              <label style={labelStyle}>Company Size</label>
+              <div style={{ ...inputStyle, display: "flex", alignItems: "center", background: t.surfaceAlt, color: t.textMuted }}>
+                {String(contact.raw_payload.employee_count)} employees
+                {contact.raw_payload.industry ? ` · ${String(contact.raw_payload.industry)}` : ""}
+                <span style={{ marginLeft: 8, fontSize: "0.72rem", opacity: 0.7 }}>(from enrichment, read-only)</span>
+              </div>
+            </div>
+          )}
+
+          {/* Enrichment data (read-only) — shows whatever OTHER fields exist in raw_payload,
               since different sources (Apify company enrichment, Trigify signals, etc.)
-              populate different keys. Don't hardcode to one field. */}
-          {contact?.raw_payload && Object.keys(contact.raw_payload).length > 0 && (
+              populate different keys. employee_count/employee_count_range are shown above
+              in their own field, excluded here to avoid duplication. */}
+          {contact?.raw_payload && Object.entries(contact.raw_payload).some(([k, v]) => !["employee_count", "employee_count_range"].includes(k) && v != null && v !== "") && (
             <div>
               <label style={labelStyle}>Enrichment Data</label>
               <div style={{ ...inputStyle, height: "auto", background: t.surfaceAlt, color: t.textMuted, padding: "8px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
                 {Object.entries(contact.raw_payload).map(([key, value]) => {
+                  if (["employee_count", "employee_count_range"].includes(key)) return null;
                   if (value == null || value === "") return null;
                   const label = key.replace(/_/g, " ").replace(/\b\w/g, ch => ch.toUpperCase());
                   const display = typeof value === "object" ? JSON.stringify(value) : String(value);
