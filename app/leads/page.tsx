@@ -198,17 +198,7 @@ export default function LeadsPage() {
 
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
-  useEffect(() => {
-    const channel = supabase
-      .channel("contacts-realtime")
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "contacts" }, (payload) => {
-        setContacts(prev => prev.map(c => c.id === (payload.new as Contact).id ? { ...c, ...(payload.new as Contact) } : c));
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, []);
-
-  useEffect(() => {
+  const loadCounts = useCallback(() => {
     const stages = ["Demo Booked", "Qualified", "Cold", "Nurture", "Closed Won", "Closed Lost"];
     Promise.all(
       stages.map(s =>
@@ -227,7 +217,35 @@ export default function LeadsPage() {
       .then(({ count }) => setSmeCount(count ?? 0));
     supabase.from("contacts").select("*", { count: "exact", head: true }).not("linkedin_url", "is", null)
       .then(({ count }) => setLinkedinCount(count ?? 0));
+  }, []);
 
+  // Refresh pill counts periodically (every 60s) so they don't drift from
+  // changes made outside this tab (scripts, enrichment jobs, other sessions)
+  // — the realtime subscription below only patches rows currently on screen.
+  useEffect(() => {
+    loadCounts();
+    const interval = setInterval(loadCounts, 60000);
+    return () => clearInterval(interval);
+  }, [loadCounts]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("contacts-realtime")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "contacts" }, (payload) => {
+        setContacts(prev => prev.map(c => c.id === (payload.new as Contact).id ? { ...c, ...(payload.new as Contact) } : c));
+        loadCounts();
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "contacts" }, () => {
+        loadCounts();
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "contacts" }, () => {
+        loadCounts();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [loadCounts]);
+
+  useEffect(() => {
     supabase.from("contacts").select("list_name").not("list_name", "is", null)
       .then(({ data }) => {
         if (data) {
