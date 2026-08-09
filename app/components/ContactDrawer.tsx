@@ -12,7 +12,7 @@ export type Contact = {
   last_name: string | null;
   company: string | null;
   company_domain: string | null;
-  raw_payload: { employee_count?: number | null; employee_count_range?: { start?: number; end?: number } | null; industry?: string | null } | null;
+  raw_payload: Record<string, unknown> | null;
   job_title: string | null;
   linkedin_url: string | null;
   city: string | null;
@@ -223,14 +223,30 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
             </div>
           </div>
 
-          {/* Company size (read-only, from enrichment) */}
-          {contact?.raw_payload?.employee_count != null && (
+          {/* Enrichment data (read-only) — shows whatever fields exist in raw_payload,
+              since different sources (Apify company enrichment, Trigify signals, etc.)
+              populate different keys. Don't hardcode to one field. */}
+          {contact?.raw_payload && Object.keys(contact.raw_payload).length > 0 && (
             <div>
-              <label style={labelStyle}>Company Size</label>
-              <div style={{ ...inputStyle, display: "flex", alignItems: "center", background: t.surfaceAlt, color: t.textMuted }}>
-                {contact.raw_payload.employee_count} employees
-                {contact.raw_payload.industry ? ` · ${contact.raw_payload.industry}` : ""}
-                <span style={{ marginLeft: 8, fontSize: "0.72rem", opacity: 0.7 }}>(from enrichment, read-only)</span>
+              <label style={labelStyle}>Enrichment Data</label>
+              <div style={{ ...inputStyle, height: "auto", background: t.surfaceAlt, color: t.textMuted, padding: "8px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
+                {Object.entries(contact.raw_payload).map(([key, value]) => {
+                  if (value == null || value === "") return null;
+                  const label = key.replace(/_/g, " ").replace(/\b\w/g, ch => ch.toUpperCase());
+                  const display = typeof value === "object" ? JSON.stringify(value) : String(value);
+                  const isUrl = typeof value === "string" && /^https?:\/\//.test(value);
+                  return (
+                    <div key={key} style={{ fontSize: "0.78rem", display: "flex", gap: 6 }}>
+                      <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{label}:</span>
+                      {isUrl ? (
+                        <a href={value as string} target="_blank" rel="noreferrer" style={{ color: t.accent, wordBreak: "break-all" }}>{display}</a>
+                      ) : (
+                        <span style={{ wordBreak: "break-word" }}>{display}</span>
+                      )}
+                    </div>
+                  );
+                })}
+                <span style={{ fontSize: "0.68rem", opacity: 0.6, marginTop: 2 }}>(read-only, from enrichment)</span>
               </div>
             </div>
           )}

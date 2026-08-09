@@ -34,7 +34,7 @@ type Contact = {
   beehiiv_engaged: boolean | null;
   affiliate_code: string | null;
   first_touch_source: { utm_source?: string; utm_medium?: string; utm_campaign?: string } | null;
-  raw_payload: { employee_count?: number | null } | null;
+  raw_payload: { employee_count?: number | null; [key: string]: unknown } | null;
 };
 
 const LIGHT = {
