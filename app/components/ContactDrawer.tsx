@@ -46,6 +46,8 @@ export type Contact = {
   created_at: string;
   updated_at: string;
   demo_scheduled: string | null;
+  demo_scheduled_at: string | null;
+  demo_meeting_url: string | null;
   affiliate_code: string | null;
   first_touch_source: { utm_source?: string; utm_medium?: string; utm_campaign?: string } | null;
   guest_signup_at: string | null;
@@ -78,6 +80,8 @@ const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_schedul
   affiliate_code: null, first_touch_source: null, guest_signup_at: null, raw_payload: null,
 };
 
+type Campaign = { id: string; name: string; active: boolean };
+
 export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, onDeleted }: Props) {
   const t = dark ? DARK : LIGHT;
   const [form, setForm] = useState({ ...EMPTY });
@@ -85,6 +89,44 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [selectedCampaign, setSelectedCampaign] = useState("");
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrollResult, setEnrollResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/campaigns")
+      .then(r => r.json())
+      .then(d => setCampaigns(d.campaigns ?? []))
+      .catch(() => null);
+  }, []);
+
+  async function enroll() {
+    if (!selectedCampaign || !contact) return;
+    setEnrolling(true);
+    setEnrollResult(null);
+    const camp = campaigns.find(c => c.id === selectedCampaign);
+    const res = await fetch("/api/leads/enroll-campaign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contact_id: contact.id,
+        campaign_id: selectedCampaign,
+        campaign_name: camp?.name ?? "",
+        email: contact.email,
+        first_name: contact.first_name,
+        last_name: contact.last_name,
+        company: contact.company,
+      }),
+    });
+    const json = await res.json();
+    setEnrolling(false);
+    setEnrollResult(res.ok
+      ? { ok: true, msg: `Enrolled in "${camp?.name}"` }
+      : { ok: false, msg: json.error ?? "Error enrolling" }
+    );
+  }
 
   useEffect(() => {
     if (contact) {
@@ -318,6 +360,20 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
             </select>
           </div>
 
+          {/* Demo booking — read only */}
+          {contact?.demo_scheduled_at && (
+            <div style={{ padding: "10px 14px", background: "#E8B66A22", borderRadius: 10, border: "1px solid #E8B66A55" }}>
+              <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "#9A6A00" }}>
+                📅 Demo {new Date(contact.demo_scheduled_at) > new Date() ? "scheduled for" : "was on"} {new Date(contact.demo_scheduled_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </div>
+              {contact.demo_meeting_url && (
+                <a href={contact.demo_meeting_url} target="_blank" rel="noreferrer" style={{ fontSize: "0.75rem", color: "#9A6A00", textDecoration: "underline" }}>
+                  Ver reunión →
+                </a>
+              )}
+            </div>
+          )}
+
           {/* Guest signup — read only */}
           {contact?.guest_signup_at && (
             <div>
@@ -429,6 +485,52 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
               }} />
             </button>
           </div>
+
+          {/* Enroll in campaign */}
+          {!isNew && (
+            <div style={{ borderRadius: 10, border: `1px solid ${t.border}`, overflow: "hidden" }}>
+              <div style={{ padding: "10px 14px", background: t.surfaceAlt }}>
+                <div style={{ fontSize: "0.83rem", fontWeight: 600, color: t.text, marginBottom: 8 }}>
+                  Enroll in campaign
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <select
+                    value={selectedCampaign}
+                    onChange={e => { setSelectedCampaign(e.target.value); setEnrollResult(null); }}
+                    style={{ ...inputStyle, flex: 1, cursor: "pointer" }}
+                  >
+                    <option value="">Select campaign…</option>
+                    {campaigns.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.active ? "▶ " : "⏸ "}{c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={enroll}
+                    disabled={!selectedCampaign || enrolling}
+                    style={{
+                      background: selectedCampaign ? t.accent : t.border,
+                      color: selectedCampaign ? "#fff" : t.textFaint,
+                      border: "none", borderRadius: 8, padding: "7px 16px",
+                      fontSize: "0.8rem", fontWeight: 700, cursor: selectedCampaign ? "pointer" : "default",
+                      fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0,
+                      opacity: enrolling ? 0.7 : 1,
+                    }}
+                  >{enrolling ? "…" : "Enroll →"}</button>
+                </div>
+                {enrollResult && (
+                  <div style={{
+                    marginTop: 8, fontSize: "0.75rem", fontWeight: 600, padding: "5px 10px",
+                    borderRadius: 6, background: enrollResult.ok ? "#7A8A5C22" : "#C1573B22",
+                    color: enrollResult.ok ? "#3F5030" : "#C1573B",
+                  }}>
+                    {enrollResult.ok ? "✓ " : "✕ "}{enrollResult.msg}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Notes */}
           <div>

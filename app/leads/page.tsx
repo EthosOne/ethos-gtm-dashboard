@@ -560,11 +560,21 @@ export default function LeadsPage() {
                             }}>in</span>
                           )}
                           {c.icp_tier === "SME" && (
-                            <span title={c.raw_payload?.employee_count ? `${c.raw_payload.employee_count} employees` : undefined} style={{
+                            <span style={{
                               background: "#7A8A5C22", color: "#3F5030", borderRadius: 999,
                               padding: "1px 7px", fontSize: "0.62rem", fontWeight: 700,
                               letterSpacing: "0.04em", whiteSpace: "nowrap",
                             }}>SME</span>
+                          )}
+                          {c.raw_payload?.employee_count != null && (
+                            <span style={{
+                              background: "#7E9AA822", color: "#3A6070", borderRadius: 999,
+                              padding: "1px 7px", fontSize: "0.62rem", fontWeight: 700,
+                              letterSpacing: "0.04em", whiteSpace: "nowrap",
+                            }}>
+                              <i className="bi bi-people-fill" style={{ marginRight: 3 }} />
+                              {c.raw_payload.employee_count.toLocaleString()}
+                            </span>
                           )}
                           {c.outreach_status === "gdpr_hold" && (
                             <span style={{
