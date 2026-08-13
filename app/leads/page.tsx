@@ -29,6 +29,8 @@ type Contact = {
   icp_tier: string | null;
   created_at: string;
   twlr_subscriber: boolean | null;
+  beehiiv_subscription_id: string | null;
+  twlr_unsubscribed_at: string | null;
   outreach_status: string | null;
   list_name: string | null;
   beehiiv_engaged: boolean | null;
@@ -70,7 +72,10 @@ export default function LeadsPage() {
   const [engagedCount, setEngagedCount]   = useState(0);
   const [gdprCount, setGdprCount]         = useState(0);
   const [smeCount, setSmeCount]           = useState(0);
+  const [unsubCount, setUnsubCount]       = useState(0);
   const [linkedinCount, setLinkedinCount] = useState(0);
+  const [joCount, setJoCount]             = useState(0);
+  const [episodeBuilderCount, setEpisodeBuilderCount] = useState(0);
   const [stage, setStage]             = useState("All");
   const [page, setPage]               = useState(0);
   const [sortField, setSortField]     = useState("created_at");
@@ -88,6 +93,9 @@ export default function LeadsPage() {
   const [engagedOnly, setEngagedOnly]   = useState(false);
   const [gdprOnly, setGdprOnly]         = useState(false);
   const [smeOnly, setSmeOnly]           = useState(false);
+  const [unsubOnly, setUnsubOnly]       = useState(false);
+  const [joOnly, setJoOnly]             = useState(false);
+  const [episodeBuilderOnly, setEpisodeBuilderOnly] = useState(false);
   const [twlrUpdating, setTwlrUpdating] = useState<number | null>(null);
   const [listOptions, setListOptions]   = useState<string[]>([]);
   const [listFilter, setListFilter]     = useState("");
@@ -183,7 +191,10 @@ export default function LeadsPage() {
     if (engagedOnly) q = q.eq("beehiiv_engaged", true);
     if (gdprOnly) q = q.eq("outreach_status", "gdpr_hold");
     if (smeOnly) q = q.eq("icp_tier", "SME");
+    if (unsubOnly) q = q.not("twlr_unsubscribed_at", "is", null);
     if (linkedinOnly) q = q.not("linkedin_url", "is", null);
+    if (joOnly) q = q.eq("list_name", "LinkedIn Prospects - JO");
+    if (episodeBuilderOnly) q = q.not("episode_builder_submitted_at", "is", null);
     if (listFilter) q = q.eq("list_name", listFilter);
     if (search) {
       q = q.or(
@@ -194,7 +205,7 @@ export default function LeadsPage() {
     if (data) setContacts(data);
     if (count !== null) setTotal(count);
     setLoading(false);
-  }, [stage, page, pageSize, search, twlrOnly, engagedOnly, gdprOnly, smeOnly, linkedinOnly, listFilter, sortField, sortDir]);
+  }, [stage, page, pageSize, search, twlrOnly, engagedOnly, gdprOnly, smeOnly, unsubOnly, linkedinOnly, joOnly, episodeBuilderOnly, listFilter, sortField, sortDir]);
 
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
@@ -215,8 +226,14 @@ export default function LeadsPage() {
       .then(({ count }) => setGdprCount(count ?? 0));
     supabase.from("contacts").select("*", { count: "exact", head: true }).eq("icp_tier", "SME")
       .then(({ count }) => setSmeCount(count ?? 0));
+    supabase.from("contacts").select("*", { count: "exact", head: true }).not("twlr_unsubscribed_at", "is", null)
+      .then(({ count }) => setUnsubCount(count ?? 0));
     supabase.from("contacts").select("*", { count: "exact", head: true }).not("linkedin_url", "is", null)
       .then(({ count }) => setLinkedinCount(count ?? 0));
+    supabase.from("contacts").select("*", { count: "exact", head: true }).eq("list_name", "LinkedIn Prospects - JO")
+      .then(({ count }) => setJoCount(count ?? 0));
+    supabase.from("contacts").select("*", { count: "exact", head: true }).not("episode_builder_submitted_at", "is", null)
+      .then(({ count }) => setEpisodeBuilderCount(count ?? 0));
   }, []);
 
   // Refresh pill counts periodically (every 60s) so they don't drift from
@@ -305,6 +322,13 @@ export default function LeadsPage() {
             }}>
               Analytics
             </Link>
+            <Link href="/episode-submissions" style={{
+              background: "none", border: `1px solid ${t.border}`, color: t.textMuted,
+              textDecoration: "none", borderRadius: 999, padding: "6px 14px",
+              fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.04em",
+            }}>
+              Episode Submissions
+            </Link>
             <button onClick={() => { setDrawerNew(true); setDrawerContact(null); setDrawerOpen(true); }} style={{
               background: t.accent, color: "#fff", border: "none",
               borderRadius: 999, padding: "7px 16px", fontSize: "0.78rem",
@@ -377,7 +401,7 @@ export default function LeadsPage() {
             );
           })}
           {/* TWLR filter — mutually exclusive with stage */}
-          <button onClick={() => { setTwlrOnly(v => !v); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setTwlrOnly(v => !v); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: twlrOnly ? "#F4A98822" : t.surface,
             border: `1px solid ${twlrOnly ? "#F4A98866" : t.border}`,
             color: twlrOnly ? "#C1573B" : t.textMuted,
@@ -387,7 +411,7 @@ export default function LeadsPage() {
           }}>
             TWLR{(() => { const n = twlrOnly ? total : twlrCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{twlrOnly && " ✓"}
           </button>
-          <button onClick={() => { setEngagedOnly(v => !v); setTwlrOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setEngagedOnly(v => !v); setTwlrOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: engagedOnly ? "#7E9AA822" : t.surface,
             border: `1px solid ${engagedOnly ? "#2A607066" : t.border}`,
             color: engagedOnly ? "#2A6070" : t.textMuted,
@@ -397,7 +421,7 @@ export default function LeadsPage() {
           }}>
             Engaged{(() => { const n = engagedOnly ? total : engagedCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{engagedOnly && " ✓"}
           </button>
-          <button onClick={() => { setLinkedinOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setLinkedinOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: linkedinOnly ? "#0A66C222" : t.surface,
             border: `1px solid ${linkedinOnly ? "#0A66C266" : t.border}`,
             color: linkedinOnly ? "#0A66C2" : t.textMuted,
@@ -407,7 +431,7 @@ export default function LeadsPage() {
           }}>
             LinkedIn{(() => { const n = linkedinOnly ? total : linkedinCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{linkedinOnly && " ✓"}
           </button>
-          <button onClick={() => { setGdprOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setLinkedinOnly(false); setSmeOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setGdprOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setLinkedinOnly(false); setSmeOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: gdprOnly ? "#C1573B22" : t.surface,
             border: `1px solid ${gdprOnly ? "#C1573B66" : t.border}`,
             color: gdprOnly ? "#C1573B" : t.textMuted,
@@ -417,7 +441,7 @@ export default function LeadsPage() {
           }}>
             GDPR Hold{(() => { const n = gdprOnly ? total : gdprCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{gdprOnly && " ✓"}
           </button>
-          <button onClick={() => { setSmeOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setLinkedinOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setSmeOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: smeOnly ? "#7A8A5C22" : t.surface,
             border: `1px solid ${smeOnly ? "#3F503066" : t.border}`,
             color: smeOnly ? "#3F5030" : t.textMuted,
@@ -427,10 +451,40 @@ export default function LeadsPage() {
           }}>
             SME{(() => { const n = smeOnly ? total : smeCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{smeOnly && " ✓"}
           </button>
+          <button onClick={() => { setUnsubOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+            background: unsubOnly ? "#5A5A5A22" : t.surface,
+            border: `1px solid ${unsubOnly ? "#5A5A5A66" : t.border}`,
+            color: unsubOnly ? t.textMuted : t.textFaint,
+            borderRadius: 999, padding: "5px 13px", cursor: "pointer",
+            fontSize: "0.78rem", fontWeight: 700, fontFamily: "inherit",
+            letterSpacing: "0.03em", transition: "all 0.15s",
+          }}>
+            Unsubscribed{(() => { const n = unsubOnly ? total : unsubCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{unsubOnly && " ✓"}
+          </button>
+          <button onClick={() => { setJoOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+            background: joOnly ? (dark ? "#E0607A22" : "#8B233222") : t.surface,
+            border: `1px solid ${joOnly ? (dark ? "#E0607A66" : "#8B233266") : t.border}`,
+            color: joOnly ? (dark ? "#E0607A" : "#8B2332") : t.textMuted,
+            borderRadius: 999, padding: "5px 13px", cursor: "pointer",
+            fontSize: "0.78rem", fontWeight: 700, fontFamily: "inherit",
+            letterSpacing: "0.03em", transition: "all 0.15s",
+          }}>
+            LinkedIn Prospects - JO{(() => { const n = joOnly ? total : joCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{joOnly && " ✓"}
+          </button>
+          <button onClick={() => { setEpisodeBuilderOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+            background: episodeBuilderOnly ? "#C9A24B22" : t.surface,
+            border: `1px solid ${episodeBuilderOnly ? "#C9A24B66" : t.border}`,
+            color: episodeBuilderOnly ? "#9A6A00" : t.textMuted,
+            borderRadius: 999, padding: "5px 13px", cursor: "pointer",
+            fontSize: "0.78rem", fontWeight: 700, fontFamily: "inherit",
+            letterSpacing: "0.03em", transition: "all 0.15s",
+          }}>
+            Episode Builder{(() => { const n = episodeBuilderOnly ? total : episodeBuilderCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{episodeBuilderOnly && " ✓"}
+          </button>
           {listOptions.length > 0 && (
             <select
               value={listFilter}
-              onChange={e => { setListFilter(e.target.value); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setStage("All"); setPage(0); }}
+              onChange={e => { setListFilter(e.target.value); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setUnsubOnly(false); setJoOnly(false); setEpisodeBuilderOnly(false); setStage("All"); setPage(0); }}
               style={{
                 background: t.surface,
                 border: `1px solid ${listFilter ? t.accent : t.border}`,

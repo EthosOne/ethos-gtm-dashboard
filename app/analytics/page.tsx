@@ -77,7 +77,7 @@ export default function AnalyticsPage() {
       setStageCounts(counts);
 
       const { count: twlr } = await supabase
-        .from("twlr_subscribers").select("*", { count: "exact", head: true });
+        .from("contacts").select("*", { count: "exact", head: true }).eq("twlr_subscriber", true);
       setTwlrCount(twlr ?? 0);
 
       const { count: bEngaged } = await supabase

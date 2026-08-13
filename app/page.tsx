@@ -97,6 +97,7 @@ export default function Dashboard() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelLoading, setPanelLoading] = useState(false);
   const [pulse, setPulse]       = useState({ subscribers: 0, engaged: 0, outreach: 0, opens: 0, openRate: 0, webViews: 0, postTitle: "" });
+  const [coldOutreach, setColdOutreach] = useState({ sent: 0, replies: 0, clicks: 0, bounced: 0, leads: 0, contacted: 0 });
   const [signals, setSignals]   = useState<Signal[]>([]);
   const [drilldown, setDrilldown] = useState<"subscribers" | "engaged" | "outreach" | null>(null);
   const [drillItems, setDrillItems] = useState<{ label: string; sub: string }[]>([]);
@@ -146,12 +147,12 @@ export default function Dashboard() {
     setDrillLoading(true);
     if (type === "subscribers") {
       const { data } = await supabase
-        .from("twlr_subscribers").select("email,first_name,last_name,subscribed_at").order("subscribed_at", { ascending: false }).limit(20);
-      setDrillItems((data ?? []).map((r: { email: string; first_name: string | null; last_name: string | null; subscribed_at: string }) => ({
+        .from("contacts").select("email,first_name,last_name,created_at").eq("twlr_subscriber", true).order("created_at", { ascending: false }).limit(20);
+      setDrillItems((data ?? []).map((r: { email: string; first_name: string | null; last_name: string | null; created_at: string }) => ({
         label: [r.first_name, r.last_name].filter(Boolean).join(" ") || r.email,
         sub: r.email !== ([r.first_name, r.last_name].filter(Boolean).join(" ") || r.email)
-          ? `${r.email} · ${new Date(r.subscribed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
-          : new Date(r.subscribed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+          ? `${r.email} · ${new Date(r.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
+          : new Date(r.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
       })));
     } else if (type === "engaged") {
       const { data } = await supabase
@@ -174,17 +175,19 @@ export default function Dashboard() {
   async function openSignalsPanel() {
     setPanelOpen(true);
     setPanelLoading(true);
-    const [{ count: subs }, { count: eng }, { count: out }, { data: sig }, nlStats, nlPosts] = await Promise.all([
-      supabase.from("twlr_subscribers").select("*", { count: "exact", head: true }),
+    const [{ count: subs }, { count: eng }, { count: out }, { data: sig }, nlStats, nlPosts, instantlyStats] = await Promise.all([
+      supabase.from("contacts").select("*", { count: "exact", head: true }).eq("twlr_subscriber", true),
       supabase.from("contacts").select("*", { count: "exact", head: true }).eq("beehiiv_engaged", true),
       supabase.from("contacts").select("*", { count: "exact", head: true }).eq("instantly_enrolled", true),
       supabase.from("contacts")
         .select("id,first_name,last_name,company,job_title,stage,beehiiv_engaged,linkedin_url,guest_signup_at,updated_at")
         .or("beehiiv_engaged.eq.true,stage.eq.Nurture")
+        .not("first_name", "is", null)
         .order("updated_at", { ascending: false })
         .limit(10),
       fetch("/api/newsletter-stats").then(r => r.json()).catch(() => ({})),
       fetch("/api/newsletter-posts").then(r => r.json()).catch(() => []),
+      fetch("/api/instantly-stats").then(r => r.json()).catch(() => ({})),
     ]);
     setPulse({
       subscribers: subs ?? 0,
@@ -194,6 +197,14 @@ export default function Dashboard() {
       openRate:    nlStats.open_rate    ?? 0,
       webViews:    nlStats.web_views    ?? 0,
       postTitle:   nlStats.post_title   ?? "",
+    });
+    setColdOutreach({
+      sent:      instantlyStats.sent      ?? 0,
+      replies:   instantlyStats.replies   ?? 0,
+      clicks:    instantlyStats.clicks    ?? 0,
+      bounced:   instantlyStats.bounced   ?? 0,
+      leads:     instantlyStats.leads     ?? 0,
+      contacted: instantlyStats.contacted ?? 0,
     });
     setSignals((sig as Signal[]) ?? []);
     setPosts(Array.isArray(nlPosts) ? (nlPosts as Post[]) : []);
@@ -508,7 +519,10 @@ export default function Dashboard() {
           fontSize: "0.75rem",
           color: t.textFaint,
         }}>
-          <span>Ethos One · Company OS · 2026</span>
+          <span>
+            Ethos One · Company OS · 2026 ·{" "}
+            <a href="/test" style={{ color: t.textFaint, textDecoration: "underline" }}>Ops Tools</a>
+          </span>
           <span style={{
             width: 8,
             height: 8,
@@ -579,7 +593,7 @@ export default function Dashboard() {
               </div>
               {pulse.postTitle && (
                 <div style={{ fontSize: "0.68rem", color: t.textFaint, marginBottom: 8, fontStyle: "italic" }}>
-                  Latest: {pulse.postTitle.replace(/^Issue \d+:\s*/i, "Issue 001 — ")}
+                  Latest: {pulse.postTitle.replace(/^(Issue \d+):\s*/i, "$1 — ")}
                 </div>
               )}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
@@ -629,6 +643,32 @@ export default function Dashboard() {
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Cold Outreach (Instantly) */}
+            <div style={{ padding: "1.5rem", borderTop: `1px solid ${t.border}` }}>
+              <div style={{ fontSize: "0.72rem", fontWeight: 600, color: t.textFaint, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
+                Cold Outreach · TWLR GDPR 2500
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+                {[
+                  { label: "Sent",     value: coldOutreach.sent,     sub: `${coldOutreach.contacted} of ${coldOutreach.leads} leads`, color: t.accent },
+                  { label: "Replies",  value: coldOutreach.replies,  sub: "Real conversations",           color: "#8B2332" },
+                  { label: "Clicks",   value: coldOutreach.clicks,   sub: "Subscribe / guest links",       color: "#C9A24B" },
+                  { label: "Bounced",  value: coldOutreach.bounced,  sub: "Deliverability check",          color: "#7E9AA8" },
+                ].map((m, i) => (
+                  <div key={i} style={{
+                    background: t.surfaceAlt, border: `1px solid ${t.border}`,
+                    borderRadius: 10, padding: "0.85rem 0.75rem",
+                  }}>
+                    <div style={{ fontSize: "1.4rem", fontWeight: 800, color: m.color, lineHeight: 1 }}>
+                      {m.value.toLocaleString("en-GB")}
+                    </div>
+                    <div style={{ fontSize: "0.7rem", color: t.text, marginTop: 5, fontWeight: 700 }}>{m.label}</div>
+                    <div style={{ fontSize: "0.62rem", color: t.textFaint, marginTop: 2 }}>{m.sub}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Issues list */}

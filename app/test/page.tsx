@@ -32,6 +32,22 @@ export default function TestPage() {
   const [clearing, setClearing] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [log, setLog] = useState<string[]>([]);
+  const [syncState, setSyncState] = useState<BtnState>("idle");
+  const [syncResult, setSyncResult] = useState<{ flagged: number; enrolled: number } | null>(null);
+
+  async function forceNurtureSync() {
+    setSyncState("loading");
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/admin/force-nurture-sync", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Sync failed");
+      setSyncResult({ flagged: json.flagged, enrolled: json.enrolled });
+      setSyncState("done");
+    } catch {
+      setSyncState("error");
+    }
+  }
 
   const t = dark ? DARK : LIGHT;
 
@@ -117,15 +133,52 @@ export default function TestPage() {
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
           <div>
-            <h1 style={{ fontSize: "1.4rem", fontWeight: 700, margin: 0, color: t.text }}>Test Panel</h1>
+            <h1 style={{ fontSize: "1.4rem", fontWeight: 700, margin: 0, color: t.text }}>Ops Tools</h1>
             <p style={{ color: t.textFaint, marginTop: 4, fontSize: "0.9rem" }}>
-              Demo triggers — internal use only.{" "}
+              Real actions + demo triggers — internal use only.{" "}
               <a href="/" style={{ color: t.textMuted }}>← Dashboard</a>
             </p>
           </div>
           <button onClick={toggleTheme} style={{ background: t.toggleBg, color: t.toggleText, border: "none", borderRadius: 999, padding: "6px 14px", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
             <i className={dark ? "bi bi-sun-fill" : "bi bi-moon-fill"} style={{ marginRight: 5, color: t.toggleText }} />{dark ? "Light" : "Dark"}
           </button>
+        </div>
+
+        {/* Real actions */}
+        <div style={{ marginBottom: "2rem" }}>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "0.75rem", color: t.text }}>Real actions</h2>
+          <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, padding: "1.25rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+              <div>
+                <div style={{ fontSize: "0.9rem", fontWeight: 600, color: t.text }}>Force Nurture Sync</div>
+                <div style={{ fontSize: "0.78rem", color: t.textFaint, marginTop: 2 }}>
+                  Runs the real check now instead of waiting for the 2h cron: flags genuinely engaged Beehiiv subscribers, then enrolls newly-engaged Cold contacts into the warm Instantly campaign.
+                </div>
+              </div>
+              <button
+                onClick={forceNurtureSync}
+                disabled={syncState === "loading"}
+                style={{
+                  background: t.toggleBg, color: t.toggleText, border: "none",
+                  borderRadius: 999, padding: "8px 18px", fontSize: "0.82rem",
+                  fontWeight: 600, cursor: syncState === "loading" ? "default" : "pointer",
+                  fontFamily: "inherit", whiteSpace: "nowrap",
+                }}
+              >
+                {syncState === "loading" ? "Running…" : "Run Now"}
+              </button>
+            </div>
+            {syncState === "done" && syncResult && (
+              <div style={{ marginTop: 10, fontSize: "0.8rem", color: "#3F5030" }}>
+                ✓ Flagged {syncResult.flagged} newly engaged, enrolled {syncResult.enrolled} into the warm campaign.
+              </div>
+            )}
+            {syncState === "error" && (
+              <div style={{ marginTop: 10, fontSize: "0.8rem", color: "#8A3A25" }}>
+                ✗ Sync failed — check server logs.
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Trigger buttons */}

@@ -26,13 +26,18 @@ export async function GET() {
       id:           p.id,
       title:        p.title,
       web_url:      p.web_url ?? null,
-      publish_date: p.publish_date ?? null,
+      publish_date: (p.publish_date as number | null) ?? null,
       total_sent:   email.recipients   ?? 0,
       unique_opens: email.unique_opens ?? 0,
       open_rate:    email.open_rate    ?? 0,
       web_views:    web.views          ?? 0,
     };
   });
+
+  // Beehiiv's order_by=newest_first is unreliable when combined with expand[]=stats
+  // (confirmed: without expand it sorts correctly, with it it doesn't) — sort here instead
+  // of trusting the API's order.
+  posts.sort((a, b) => (b.publish_date ?? 0) - (a.publish_date ?? 0));
 
   return NextResponse.json(posts);
 }

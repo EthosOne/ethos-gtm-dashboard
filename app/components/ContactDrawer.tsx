@@ -1,6 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 const ALL_STAGES = ["Cold", "Nurture", "Qualified", "Demo Booked", "Closed Won", "Closed Lost"];
 
@@ -21,6 +27,14 @@ const ENRICHMENT_FIELDS: { key: string; label: string }[] = [
   { key: "collected_at", label: "Collected At" },
 ];
 
+type EpisodeBuilderSubmission = {
+  episode_topic: string | null;
+  description_notes: string | null;
+  interactive_elements: string | null;
+  quote_testimonial: string | null;
+  created_at: string;
+};
+
 export type Contact = {
   id: number;
   email: string;
@@ -37,6 +51,8 @@ export type Contact = {
   stage: string;
   source: string;
   twlr_subscriber: boolean | null;
+  beehiiv_subscription_id: string | null;
+  twlr_unsubscribed_at: string | null;
   outreach_status: string | null;
   list_name: string | null;
   beehiiv_engaged: boolean | null;
@@ -51,6 +67,7 @@ export type Contact = {
   affiliate_code: string | null;
   first_touch_source: { utm_source?: string; utm_medium?: string; utm_campaign?: string } | null;
   guest_signup_at: string | null;
+  episode_builder_submitted_at: string | null;
 };
 
 type Props = {
@@ -73,10 +90,10 @@ const DARK = {
   textFaint: "#5C5A6A", accent: "#F4A988",
 };
 
-const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_scheduled"> = {
+const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_scheduled"|"episode_builder_submitted_at"|"demo_scheduled_at"|"demo_meeting_url"> = {
   email: "", phone: "", first_name: "", last_name: "", company: "", company_domain: "",
   job_title: "", linkedin_url: "", city: "", country: "", stage: "Cold",
-  twlr_subscriber: false, outreach_status: "active", list_name: null, notes: "", icp_score: null, icp_tier: null, beehiiv_engaged: false,
+  twlr_subscriber: false, beehiiv_subscription_id: null, twlr_unsubscribed_at: null, outreach_status: "active", list_name: null, notes: "", icp_score: null, icp_tier: null, beehiiv_engaged: false,
   affiliate_code: null, first_touch_source: null, guest_signup_at: null, raw_payload: null,
 };
 
@@ -89,6 +106,51 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [subscribing, setSubscribing] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(false);
+  const [episodeSubmission, setEpisodeSubmission] = useState<EpisodeBuilderSubmission | null>(null);
+
+  useEffect(() => {
+    if (!contact?.twlr_subscriber || !contact?.beehiiv_subscription_id) return;
+    let cancelled = false;
+    setCheckingStatus(true);
+    fetch("/api/leads/check-subscription", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: contact.id, beehiiv_subscription_id: contact.beehiiv_subscription_id }),
+    })
+      .then(res => res.json())
+      .then(json => {
+        if (cancelled) return;
+        if (json.active === false) {
+          const unsubAt = json.unsubscribed_on ?? new Date().toISOString();
+          setForm(prev => ({ ...prev, twlr_subscriber: false, twlr_unsubscribed_at: unsubAt }));
+          onSaved({ ...contact, twlr_subscriber: false, twlr_unsubscribed_at: unsubAt });
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setCheckingStatus(false); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contact?.id]);
+
+  async function subscribeToTwlr() {
+    if (!contact) return;
+    setSubscribing(true);
+    setError(null);
+    const res = await fetch("/api/leads/update-twlr", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: contact.id, twlr_subscriber: true }),
+    });
+    const json = await res.json();
+    setSubscribing(false);
+    if (!res.ok) { setError(json.error ?? "Could not subscribe."); return; }
+    set("twlr_subscriber", true);
+    set("beehiiv_subscription_id", json.beehiiv_subscription_id ?? null);
+    set("twlr_unsubscribed_at", null);
+    onSaved({ ...contact, twlr_subscriber: true, beehiiv_subscription_id: json.beehiiv_subscription_id ?? null, twlr_unsubscribed_at: null });
+  }
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState("");
@@ -143,6 +205,8 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
         country: contact.country ?? "",
         stage: contact.stage ?? "Cold",
         twlr_subscriber: contact.twlr_subscriber ?? false,
+        beehiiv_subscription_id: contact.beehiiv_subscription_id ?? null,
+        twlr_unsubscribed_at: contact.twlr_unsubscribed_at ?? null,
         outreach_status: contact.outreach_status ?? "active",
         beehiiv_engaged: contact.beehiiv_engaged ?? false,
         list_name: contact.list_name ?? null,
@@ -160,6 +224,19 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
     setConfirmDelete(false);
     setError(null);
   }, [contact, isNew]);
+
+  useEffect(() => {
+    setEpisodeSubmission(null);
+    if (!contact?.episode_builder_submitted_at || !contact.email) return;
+    supabase
+      .from("episode_builder")
+      .select("episode_topic, description_notes, interactive_elements, quote_testimonial, created_at")
+      .eq("email", contact.email)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setEpisodeSubmission(data));
+  }, [contact]);
 
   function set(field: string, value: unknown) {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -384,6 +461,33 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
             </div>
           )}
 
+          {/* Episode Builder submission — read only */}
+          {contact?.episode_builder_submitted_at && (
+            <div style={{ padding: "10px 14px", background: "#C9A24B22", borderRadius: 10, border: "1px solid #C9A24B55" }}>
+              <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "#9A6A00" }}>
+                🎙 Episode Builder — submitted {new Date(contact.episode_builder_submitted_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+              </div>
+              {episodeSubmission ? (
+                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                  {episodeSubmission.episode_topic && (
+                    <div><b style={{ fontSize: "0.72rem", color: t.textFaint }}>Topic:</b> <span style={{ fontSize: "0.78rem", color: t.text }}>{episodeSubmission.episode_topic}</span></div>
+                  )}
+                  {episodeSubmission.description_notes && (
+                    <div><b style={{ fontSize: "0.72rem", color: t.textFaint }}>Description:</b> <span style={{ fontSize: "0.78rem", color: t.text }}>{episodeSubmission.description_notes}</span></div>
+                  )}
+                  {episodeSubmission.interactive_elements && (
+                    <div><b style={{ fontSize: "0.72rem", color: t.textFaint }}>Interactive:</b> <span style={{ fontSize: "0.78rem", color: t.text }}>{episodeSubmission.interactive_elements}</span></div>
+                  )}
+                  {episodeSubmission.quote_testimonial && (
+                    <div><b style={{ fontSize: "0.72rem", color: t.textFaint }}>Quote:</b> <span style={{ fontSize: "0.78rem", color: t.text, fontStyle: "italic" }}>&ldquo;{episodeSubmission.quote_testimonial}&rdquo;</span></div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ fontSize: "0.72rem", color: t.textFaint, marginTop: 4 }}>Loading submission…</div>
+              )}
+            </div>
+          )}
+
           {/* List Name — read only */}
           {contact?.list_name && (
             <div>
@@ -406,26 +510,43 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
             </div>
           )}
 
-          {/* TWLR toggle */}
+          {/* TWLR real subscription — no toggle, either subscribe for real or manage in Beehiiv */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: t.surfaceAlt, borderRadius: 10, border: `1px solid ${t.border}` }}>
             <div>
               <div style={{ fontSize: "0.83rem", fontWeight: 600, color: t.text }}>TWLR Subscriber</div>
-              <div style={{ fontSize: "0.72rem", color: t.textFaint }}>The Work-Life Reporter newsletter</div>
+              <div style={{ fontSize: "0.72rem", color: form.twlr_unsubscribed_at && !form.twlr_subscriber ? "#C1573B" : t.textFaint }}>
+                {checkingStatus
+                  ? "Checking status…"
+                  : form.twlr_subscriber
+                  ? "Subscribed for real in Beehiiv"
+                  : form.twlr_unsubscribed_at
+                  ? `Unsubscribed on ${new Date(form.twlr_unsubscribed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
+                  : "The Work-Life Reporter newsletter"}
+              </div>
             </div>
-            <button
-              onClick={() => set("twlr_subscriber", !form.twlr_subscriber)}
-              style={{
-                width: 44, height: 24, borderRadius: 999, border: "none", cursor: "pointer",
-                background: form.twlr_subscriber ? "#F4A988" : t.border,
-                position: "relative", transition: "background 0.2s", flexShrink: 0,
-              }}
-            >
-              <span style={{
-                position: "absolute", top: 3, left: form.twlr_subscriber ? 22 : 3,
-                width: 18, height: 18, borderRadius: "50%", background: "#fff",
-                transition: "left 0.2s", display: "block",
-              }} />
-            </button>
+            {form.twlr_subscriber ? (
+              <a
+                href={`https://app.beehiiv.com/subscribers?search=${encodeURIComponent(form.email)}`}
+                target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: "0.72rem", fontWeight: 700, color: "#C1573B", textDecoration: "none", whiteSpace: "nowrap" }}
+              >
+                Manage in Beehiiv →
+              </a>
+            ) : (
+              <button
+                onClick={subscribeToTwlr}
+                disabled={subscribing || !form.email}
+                title={!form.email ? "Contact needs an email first" : ""}
+                style={{
+                  background: "#F4A988", color: "#3F2A1E", border: "none", borderRadius: 999,
+                  padding: "5px 12px", fontSize: "0.72rem", fontWeight: 700, fontFamily: "inherit",
+                  cursor: subscribing || !form.email ? "not-allowed" : "pointer",
+                  opacity: subscribing || !form.email ? 0.6 : 1, flexShrink: 0,
+                }}
+              >
+                {subscribing ? "Subscribing…" : "Subscribe now"}
+              </button>
+            )}
           </div>
 
           {/* Beehiiv Engaged toggle */}
