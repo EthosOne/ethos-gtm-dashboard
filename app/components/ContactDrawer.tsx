@@ -65,6 +65,8 @@ export type Contact = {
   demo_scheduled_at: string | null;
   demo_meeting_url: string | null;
   affiliate_code: string | null;
+  is_affiliate: boolean | null;
+  affiliate_ref_code: string | null;
   first_touch_source: { utm_source?: string; utm_medium?: string; utm_campaign?: string } | null;
   guest_signup_at: string | null;
   episode_builder_submitted_at: string | null;
@@ -77,6 +79,7 @@ type Props = {
   onClose: () => void;
   onSaved: (contact: Contact) => void;
   onDeleted: (id: number) => void;
+  onOpenContact?: (contact: Contact) => void;
 };
 
 const LIGHT = {
@@ -90,7 +93,7 @@ const DARK = {
   textFaint: "#5C5A6A", accent: "#F4A988",
 };
 
-const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_scheduled"|"episode_builder_submitted_at"|"demo_scheduled_at"|"demo_meeting_url"> = {
+const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_scheduled"|"episode_builder_submitted_at"|"demo_scheduled_at"|"demo_meeting_url"|"is_affiliate"|"affiliate_ref_code"> = {
   email: "", phone: "", first_name: "", last_name: "", company: "", company_domain: "",
   job_title: "", linkedin_url: "", city: "", country: "", stage: "Cold",
   twlr_subscriber: false, beehiiv_subscription_id: null, twlr_unsubscribed_at: null, outreach_status: "active", list_name: null, notes: "", icp_score: null, icp_tier: null, beehiiv_engaged: false,
@@ -99,7 +102,7 @@ const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_schedul
 
 type Campaign = { id: string; name: string; active: boolean };
 
-export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, onDeleted }: Props) {
+export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, onDeleted, onOpenContact }: Props) {
   const t = dark ? DARK : LIGHT;
   const [form, setForm] = useState({ ...EMPTY });
   const [saving, setSaving] = useState(false);
@@ -109,6 +112,24 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
   const [subscribing, setSubscribing] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [episodeSubmission, setEpisodeSubmission] = useState<EpisodeBuilderSubmission | null>(null);
+  const [referrerLookupState, setReferrerLookupState] = useState<"idle" | "loading" | "not_found">("idle");
+
+  async function openReferrer() {
+    if (!onOpenContact || !contact?.affiliate_code) return;
+    setReferrerLookupState("loading");
+    const { data } = await supabase
+      .from("contacts")
+      .select("*")
+      .eq("affiliate_ref_code", contact.affiliate_code)
+      .maybeSingle();
+    if (data) {
+      onOpenContact(data as unknown as Contact);
+      setReferrerLookupState("idle");
+    } else {
+      setReferrerLookupState("not_found");
+      setTimeout(() => setReferrerLookupState("idle"), 2000);
+    }
+  }
 
   useEffect(() => {
     if (!contact?.twlr_subscriber || !contact?.beehiiv_subscription_id) return;
@@ -498,10 +519,19 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
             </div>
           )}
 
-          {/* Affiliate referral — read only */}
+          {/* Affiliate referral — read only, click to open the referrer's own contact */}
           {contact?.affiliate_code && (
-            <div style={{ padding: "10px 14px", background: "#7A8A5C22", borderRadius: 10, border: "1px solid #7A8A5C55" }}>
-              <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "#3F5030" }}>★ Referred by {contact.affiliate_code}</div>
+            <div
+              onClick={openReferrer}
+              style={{
+                padding: "10px 14px", background: "#7A8A5C22", borderRadius: 10, border: "1px solid #7A8A5C55",
+                cursor: onOpenContact ? "pointer" : "default",
+              }}
+            >
+              <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "#3F5030" }}>
+                ★ Referred by {contact.affiliate_code}
+                {onOpenContact && <span style={{ fontWeight: 400, opacity: 0.7 }}> — {referrerLookupState === "loading" ? "opening…" : referrerLookupState === "not_found" ? "not found" : "click to open →"}</span>}
+              </div>
               {contact.first_touch_source && (
                 <div style={{ fontSize: "0.72rem", color: t.textFaint, marginTop: 2 }}>
                   {[contact.first_touch_source.utm_source, contact.first_touch_source.utm_medium, contact.first_touch_source.utm_campaign].filter(Boolean).join(" / ")}

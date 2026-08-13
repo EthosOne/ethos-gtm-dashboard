@@ -540,6 +540,9 @@ export default function KanbanPage() {
             });
             setDrawerOpen(false);
           }}
+          onOpenContact={(referrer) => {
+            setDrawerContact(referrer as unknown as DrawerContact);
+          }}
         />
       )}
     </main>

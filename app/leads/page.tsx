@@ -35,6 +35,8 @@ type Contact = {
   list_name: string | null;
   beehiiv_engaged: boolean | null;
   affiliate_code: string | null;
+  is_affiliate: boolean | null;
+  affiliate_ref_code: string | null;
   first_touch_source: { utm_source?: string; utm_medium?: string; utm_campaign?: string } | null;
   raw_payload: { employee_count?: number | null; [key: string]: unknown } | null;
 };
@@ -76,6 +78,7 @@ export default function LeadsPage() {
   const [linkedinCount, setLinkedinCount] = useState(0);
   const [joCount, setJoCount]             = useState(0);
   const [episodeBuilderCount, setEpisodeBuilderCount] = useState(0);
+  const [affiliateCount, setAffiliateCount] = useState(0);
   const [stage, setStage]             = useState("All");
   const [page, setPage]               = useState(0);
   const [sortField, setSortField]     = useState("created_at");
@@ -96,6 +99,7 @@ export default function LeadsPage() {
   const [unsubOnly, setUnsubOnly]       = useState(false);
   const [joOnly, setJoOnly]             = useState(false);
   const [episodeBuilderOnly, setEpisodeBuilderOnly] = useState(false);
+  const [affiliateOnly, setAffiliateOnly] = useState(false);
   const [twlrUpdating, setTwlrUpdating] = useState<number | null>(null);
   const [listOptions, setListOptions]   = useState<string[]>([]);
   const [listFilter, setListFilter]     = useState("");
@@ -195,6 +199,7 @@ export default function LeadsPage() {
     if (linkedinOnly) q = q.not("linkedin_url", "is", null);
     if (joOnly) q = q.eq("list_name", "LinkedIn Prospects - JO");
     if (episodeBuilderOnly) q = q.not("episode_builder_submitted_at", "is", null);
+    if (affiliateOnly) q = q.eq("is_affiliate", true);
     if (listFilter) q = q.eq("list_name", listFilter);
     if (search) {
       q = q.or(
@@ -205,7 +210,7 @@ export default function LeadsPage() {
     if (data) setContacts(data);
     if (count !== null) setTotal(count);
     setLoading(false);
-  }, [stage, page, pageSize, search, twlrOnly, engagedOnly, gdprOnly, smeOnly, unsubOnly, linkedinOnly, joOnly, episodeBuilderOnly, listFilter, sortField, sortDir]);
+  }, [stage, page, pageSize, search, twlrOnly, engagedOnly, gdprOnly, smeOnly, unsubOnly, linkedinOnly, joOnly, episodeBuilderOnly, affiliateOnly, listFilter, sortField, sortDir]);
 
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
@@ -234,6 +239,8 @@ export default function LeadsPage() {
       .then(({ count }) => setJoCount(count ?? 0));
     supabase.from("contacts").select("*", { count: "exact", head: true }).not("episode_builder_submitted_at", "is", null)
       .then(({ count }) => setEpisodeBuilderCount(count ?? 0));
+    supabase.from("contacts").select("*", { count: "exact", head: true }).eq("is_affiliate", true)
+      .then(({ count }) => setAffiliateCount(count ?? 0));
   }, []);
 
   // Refresh pill counts periodically (every 60s) so they don't drift from
@@ -401,7 +408,7 @@ export default function LeadsPage() {
             );
           })}
           {/* TWLR filter — mutually exclusive with stage */}
-          <button onClick={() => { setTwlrOnly(v => !v); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setTwlrOnly(v => !v); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: twlrOnly ? "#F4A98822" : t.surface,
             border: `1px solid ${twlrOnly ? "#F4A98866" : t.border}`,
             color: twlrOnly ? "#C1573B" : t.textMuted,
@@ -411,7 +418,7 @@ export default function LeadsPage() {
           }}>
             TWLR{(() => { const n = twlrOnly ? total : twlrCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{twlrOnly && " ✓"}
           </button>
-          <button onClick={() => { setEngagedOnly(v => !v); setTwlrOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setEngagedOnly(v => !v); setTwlrOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: engagedOnly ? "#7E9AA822" : t.surface,
             border: `1px solid ${engagedOnly ? "#2A607066" : t.border}`,
             color: engagedOnly ? "#2A6070" : t.textMuted,
@@ -421,7 +428,7 @@ export default function LeadsPage() {
           }}>
             Engaged{(() => { const n = engagedOnly ? total : engagedCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{engagedOnly && " ✓"}
           </button>
-          <button onClick={() => { setLinkedinOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setLinkedinOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: linkedinOnly ? "#0A66C222" : t.surface,
             border: `1px solid ${linkedinOnly ? "#0A66C266" : t.border}`,
             color: linkedinOnly ? "#0A66C2" : t.textMuted,
@@ -431,7 +438,7 @@ export default function LeadsPage() {
           }}>
             LinkedIn{(() => { const n = linkedinOnly ? total : linkedinCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{linkedinOnly && " ✓"}
           </button>
-          <button onClick={() => { setGdprOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setLinkedinOnly(false); setSmeOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setGdprOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setLinkedinOnly(false); setSmeOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: gdprOnly ? "#C1573B22" : t.surface,
             border: `1px solid ${gdprOnly ? "#C1573B66" : t.border}`,
             color: gdprOnly ? "#C1573B" : t.textMuted,
@@ -441,7 +448,7 @@ export default function LeadsPage() {
           }}>
             GDPR Hold{(() => { const n = gdprOnly ? total : gdprCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{gdprOnly && " ✓"}
           </button>
-          <button onClick={() => { setSmeOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setSmeOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: smeOnly ? "#7A8A5C22" : t.surface,
             border: `1px solid ${smeOnly ? "#3F503066" : t.border}`,
             color: smeOnly ? "#3F5030" : t.textMuted,
@@ -451,7 +458,7 @@ export default function LeadsPage() {
           }}>
             SME{(() => { const n = smeOnly ? total : smeCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{smeOnly && " ✓"}
           </button>
-          <button onClick={() => { setUnsubOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setUnsubOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: unsubOnly ? "#5A5A5A22" : t.surface,
             border: `1px solid ${unsubOnly ? "#5A5A5A66" : t.border}`,
             color: unsubOnly ? t.textMuted : t.textFaint,
@@ -461,7 +468,7 @@ export default function LeadsPage() {
           }}>
             Unsubscribed{(() => { const n = unsubOnly ? total : unsubCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{unsubOnly && " ✓"}
           </button>
-          <button onClick={() => { setJoOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setJoOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: joOnly ? (dark ? "#E0607A22" : "#8B233222") : t.surface,
             border: `1px solid ${joOnly ? (dark ? "#E0607A66" : "#8B233266") : t.border}`,
             color: joOnly ? (dark ? "#E0607A" : "#8B2332") : t.textMuted,
@@ -471,7 +478,7 @@ export default function LeadsPage() {
           }}>
             LinkedIn Prospects - JO{(() => { const n = joOnly ? total : joCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{joOnly && " ✓"}
           </button>
-          <button onClick={() => { setEpisodeBuilderOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setEpisodeBuilderOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setAffiliateOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: episodeBuilderOnly ? "#C9A24B22" : t.surface,
             border: `1px solid ${episodeBuilderOnly ? "#C9A24B66" : t.border}`,
             color: episodeBuilderOnly ? "#9A6A00" : t.textMuted,
@@ -481,10 +488,20 @@ export default function LeadsPage() {
           }}>
             Episode Builder{(() => { const n = episodeBuilderOnly ? total : episodeBuilderCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{episodeBuilderOnly && " ✓"}
           </button>
+          <button onClick={() => { setAffiliateOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+            background: affiliateOnly ? "#E37B5C22" : t.surface,
+            border: `1px solid ${affiliateOnly ? "#C1573B66" : t.border}`,
+            color: affiliateOnly ? "#C1573B" : t.textMuted,
+            borderRadius: 999, padding: "5px 13px", cursor: "pointer",
+            fontSize: "0.78rem", fontWeight: 700, fontFamily: "inherit",
+            letterSpacing: "0.03em", transition: "all 0.15s",
+          }}>
+            Affiliates{(() => { const n = affiliateOnly ? total : affiliateCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{affiliateOnly && " ✓"}
+          </button>
           {listOptions.length > 0 && (
             <select
               value={listFilter}
-              onChange={e => { setListFilter(e.target.value); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setUnsubOnly(false); setJoOnly(false); setEpisodeBuilderOnly(false); setStage("All"); setPage(0); }}
+              onChange={e => { setListFilter(e.target.value); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setUnsubOnly(false); setJoOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setStage("All"); setPage(0); }}
               style={{
                 background: t.surface,
                 border: `1px solid ${listFilter ? t.accent : t.border}`,
@@ -637,12 +654,19 @@ export default function LeadsPage() {
                               letterSpacing: "0.04em", whiteSpace: "nowrap",
                             }}>GDPR</span>
                           )}
+                          {c.is_affiliate && (
+                            <span title={`Affiliate referral code: ${c.affiliate_ref_code ?? "—"}`} style={{
+                              background: "#E37B5C22", color: "#C1573B", borderRadius: 999,
+                              padding: "1px 7px", fontSize: "0.62rem", fontWeight: 700,
+                              letterSpacing: "0.04em", whiteSpace: "nowrap",
+                            }}>Affiliate</span>
+                          )}
                           {c.affiliate_code && (
                             <span title={`Referred via ${c.affiliate_code}`} style={{
                               background: "#7A8A5C22", color: "#3F5030", borderRadius: 999,
                               padding: "1px 7px", fontSize: "0.62rem", fontWeight: 700,
                               letterSpacing: "0.04em", whiteSpace: "nowrap",
-                            }}>★ {c.affiliate_code}</span>
+                            }}>★ Referred: {c.affiliate_code}</span>
                           )}
                           {c.guest_signup_at && (
                             <span title={`Signed up to join an episode on ${new Date(c.guest_signup_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`} style={{
@@ -856,6 +880,10 @@ export default function LeadsPage() {
             setContacts(prev => prev.filter(c => c.id !== id));
             setTotal(prev => prev - 1);
             setDrawerOpen(false);
+          }}
+          onOpenContact={(referrer) => {
+            setDrawerContact(referrer);
+            setDrawerNew(false);
           }}
         />
       )}
