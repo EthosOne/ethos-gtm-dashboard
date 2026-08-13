@@ -5,6 +5,8 @@ const EMPTY = {
   demoBookedEvents30d: 0,
   ethosoneSessions30d: 0,
   twlrSessions30d: 0,
+  ethosoneUsers30d: 0,
+  twlrUsers30d: 0,
 };
 
 async function getAccessToken() {
@@ -66,7 +68,7 @@ export async function GET() {
     runReport({
       dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
       dimensions: [{ name: "hostName" }],
-      metrics: [{ name: "sessions" }],
+      metrics: [{ name: "sessions" }, { name: "activeUsers" }],
     }),
   ]);
 
@@ -79,11 +81,19 @@ export async function GET() {
 
   let ethosoneSessions30d = 0;
   let twlrSessions30d = 0;
+  let ethosoneUsers30d = 0;
+  let twlrUsers30d = 0;
   for (const row of hostnameReport?.rows ?? []) {
     const host = String(row.dimensionValues?.[0]?.value ?? "");
     const sessions = Number(row.metricValues?.[0]?.value ?? 0);
-    if (host.includes("theworklifereporter.com")) twlrSessions30d += sessions;
-    else if (host.includes("ethosone.ai")) ethosoneSessions30d += sessions;
+    const users = Number(row.metricValues?.[1]?.value ?? 0);
+    if (host.includes("theworklifereporter.com")) {
+      twlrSessions30d += sessions;
+      twlrUsers30d += users;
+    } else if (host.includes("ethosone.ai")) {
+      ethosoneSessions30d += sessions;
+      ethosoneUsers30d += users;
+    }
   }
 
   return NextResponse.json({
@@ -91,5 +101,7 @@ export async function GET() {
     demoBookedEvents30d,
     ethosoneSessions30d,
     twlrSessions30d,
+    ethosoneUsers30d,
+    twlrUsers30d,
   });
 }
