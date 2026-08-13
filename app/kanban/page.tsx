@@ -290,10 +290,14 @@ export default function KanbanPage() {
     const counts: Record<string, number> = {};
 
     await Promise.all(STAGES.map(async stage => {
-      const { data, count } = await supabase
+      let q = supabase
         .from("contacts")
         .select("id,email,first_name,last_name,company,company_domain,job_title,linkedin_url,city,country,stage,twlr_subscriber,outreach_status,notes,icp_score,icp_tier,created_at,updated_at,demo_scheduled,demo_scheduled_at,demo_meeting_url,affiliate_code,source,raw_payload", { count: "exact" })
-        .eq("stage", stage)
+        .eq("stage", stage);
+      // Nurture = actively being kept warm — unsubscribed contacts don't belong
+      // here even if nobody's moved their stage yet (see /leads "Unsubscribed" filter).
+      if (stage === "Nurture") q = q.is("twlr_unsubscribed_at", null);
+      const { data, count } = await q
         .order("created_at", { ascending: false })
         .limit(pageSize);
       results[stage] = data ?? [];
@@ -310,10 +314,12 @@ export default function KanbanPage() {
   const loadMore = useCallback(async (stage: string) => {
     const offset = stageOffsets[stage] ?? pageSize;
     setLoadingMore(prev => ({ ...prev, [stage]: true }));
-    const { data } = await supabase
+    let mq = supabase
       .from("contacts")
       .select("id,email,first_name,last_name,company,company_domain,job_title,linkedin_url,city,country,stage,twlr_subscriber,outreach_status,notes,icp_score,icp_tier,created_at,updated_at,demo_scheduled,demo_scheduled_at,demo_meeting_url,affiliate_code,source,raw_payload")
-      .eq("stage", stage)
+      .eq("stage", stage);
+    if (stage === "Nurture") mq = mq.is("twlr_unsubscribed_at", null);
+    const { data } = await mq
       .order("created_at", { ascending: false })
       .range(offset, offset + pageSize - 1);
     setContactsByStage(prev => ({ ...prev, [stage]: [...(prev[stage] ?? []), ...(data ?? [])] }));
