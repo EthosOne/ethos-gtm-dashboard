@@ -104,6 +104,7 @@ export default function Dashboard() {
   const [drillLoading, setDrillLoading] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [toolHealth, setToolHealth] = useState<Record<string, { status: string; label: string }> | null>(null);
+  const [ga4, setGa4] = useState<{ activeUsers30d: number; demoBookedEvents30d: number; ethosoneSessions30d: number; twlrSessions30d: number } | null>(null);
 
   // persist theme
   useEffect(() => {
@@ -139,6 +140,10 @@ export default function Dashboard() {
     fetchHealth();
     const interval = setInterval(fetchHealth, 60_000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/ga4-stats").then(r => r.json()).then(setGa4).catch(() => {});
   }, []);
 
   async function loadDrilldown(type: "subscribers" | "engaged" | "outreach") {
@@ -504,6 +509,29 @@ export default function Dashboard() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* GA4 Analytics */}
+        {ga4 && (
+          <div style={{ marginTop: "1rem", background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, padding: "0.9rem 1.25rem" }}>
+            <div style={{ fontSize: "0.68rem", fontWeight: 700, color: t.textFaint, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 10 }}>
+              Analytics · Last 30 days
+            </div>
+            <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+              {[
+                { label: "Active Users",     value: ga4.activeUsers30d,         sub: "Both sites combined" },
+                { label: "Demos Booked",     value: ga4.demoBookedEvents30d,    sub: "GA4 conversion event" },
+                { label: "ethosone.ai",      value: ga4.ethosoneSessions30d,    sub: "Sessions" },
+                { label: "TWLR",             value: ga4.twlrSessions30d,        sub: "Sessions" },
+              ].map(({ label, value, sub }) => (
+                <div key={label}>
+                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: t.text, lineHeight: 1.1 }}>{value.toLocaleString()}</div>
+                  <div style={{ fontSize: "0.75rem", fontWeight: 600, color: t.text }}>{label}</div>
+                  <div style={{ fontSize: "0.68rem", color: t.textFaint }}>{sub}</div>
+                </div>
+              ))}
             </div>
           </div>
         )}
