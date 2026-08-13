@@ -192,7 +192,12 @@ export default function LeadsPage() {
       .select("*", { count: "exact" })
       .order(sortField, { ascending: sortDir === "asc", nullsFirst: false })
       .range(page * pageSize, (page + 1) * pageSize - 1);
-    if (stage !== "All") q = q.eq("stage", stage);
+    if (stage !== "All") {
+      q = q.eq("stage", stage);
+      // Nurture = actively being kept warm — unsubscribed contacts don't belong
+      // here even if nobody's moved their stage yet (see "Unsubscribed" filter).
+      if (stage === "Nurture") q = q.is("twlr_unsubscribed_at", null);
+    }
     if (twlrOnly) q = q.eq("twlr_subscriber", true);
     if (engagedOnly) q = q.eq("beehiiv_engaged", true);
     if (gdprOnly) q = q.eq("outreach_status", "gdpr_hold");
@@ -220,10 +225,11 @@ export default function LeadsPage() {
   const loadCounts = useCallback(() => {
     const stages = ["Demo Booked", "Qualified", "Cold", "Nurture", "Closed Won", "Closed Lost"];
     Promise.all(
-      stages.map(s =>
-        supabase.from("contacts").select("*", { count: "exact", head: true }).eq("stage", s)
-          .then(({ count }) => [s, count ?? 0] as [string, number])
-      )
+      stages.map(s => {
+        let sq = supabase.from("contacts").select("*", { count: "exact", head: true }).eq("stage", s);
+        if (s === "Nurture") sq = sq.is("twlr_unsubscribed_at", null);
+        return sq.then(({ count }) => [s, count ?? 0] as [string, number]);
+      })
     ).then(results => setStageCounts(Object.fromEntries(results)));
 
     supabase.from("contacts").select("*", { count: "exact", head: true }).eq("twlr_subscriber", true)
