@@ -292,7 +292,7 @@ export default function KanbanPage() {
     await Promise.all(STAGES.map(async stage => {
       const { data, count } = await supabase
         .from("contacts")
-        .select("id,email,first_name,last_name,company,company_domain,job_title,linkedin_url,city,country,stage,twlr_subscriber,outreach_status,notes,icp_score,icp_tier,created_at,updated_at,demo_scheduled,source,raw_payload", { count: "exact" })
+        .select("id,email,first_name,last_name,company,company_domain,job_title,linkedin_url,city,country,stage,twlr_subscriber,outreach_status,notes,icp_score,icp_tier,created_at,updated_at,demo_scheduled,demo_scheduled_at,demo_meeting_url,affiliate_code,source,raw_payload", { count: "exact" })
         .eq("stage", stage)
         .order("created_at", { ascending: false })
         .limit(pageSize);
@@ -312,7 +312,7 @@ export default function KanbanPage() {
     setLoadingMore(prev => ({ ...prev, [stage]: true }));
     const { data } = await supabase
       .from("contacts")
-      .select("id,email,first_name,last_name,company,company_domain,job_title,linkedin_url,city,country,stage,twlr_subscriber,outreach_status,notes,icp_score,icp_tier,created_at,updated_at,demo_scheduled,source,raw_payload")
+      .select("id,email,first_name,last_name,company,company_domain,job_title,linkedin_url,city,country,stage,twlr_subscriber,outreach_status,notes,icp_score,icp_tier,created_at,updated_at,demo_scheduled,demo_scheduled_at,demo_meeting_url,affiliate_code,source,raw_payload")
       .eq("stage", stage)
       .order("created_at", { ascending: false })
       .range(offset, offset + pageSize - 1);
