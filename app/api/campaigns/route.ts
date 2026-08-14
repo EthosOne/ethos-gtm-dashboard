@@ -16,7 +16,7 @@ export async function GET() {
     // Exclude bulk GDPR campaigns and test campaigns — those don't enroll contacts one by one
     const relevant = all
       .filter((c: { name: string; id: string; status: number }) =>
-        !c.name.startsWith("TWLR — GDPR") && !c.name.startsWith("TEST")
+        !c.name.startsWith("TWLR - GDPR") && !c.name.startsWith("TEST")
       )
       .map((c: { id: string; name: string; status: number }) => ({
         id: c.id,
