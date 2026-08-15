@@ -5,23 +5,34 @@ export function isClosedStage(stage: string | undefined | null): boolean {
 }
 
 /**
- * Stops all active Instantly sequences for a contact by email, across every
- * campaign in the workspace (search is not scoped to a single campaign_id).
- * Deletes the matching lead(s) so no further emails go out — used when a
- * contact moves to Closed Won/Lost, since the deal outcome makes further
- * outreach pointless or harmful regardless of which campaign enrolled them.
+ * Stops the active Instantly sequence for a contact by deleting their lead,
+ * so no further emails go out — used when a contact moves to Closed
+ * Won/Lost, since the deal outcome makes further outreach pointless
+ * regardless of which sequence enrolled them.
+ *
+ * Prefers scoping the lookup to instantlyCampaignId (set by enroll-campaign
+ * at enrollment time) since that's an exact match. Falls back to a
+ * workspace-wide email search for contacts enrolled before that field
+ * existed (e.g. via force-nurture-sync).
  */
-export async function stopInstantlyOutreach(email: string): Promise<{ stopped: number; errors: string[] }> {
+export async function stopInstantlyOutreach(
+  email: string,
+  instantlyCampaignId?: string | null
+): Promise<{ stopped: number; errors: string[] }> {
   const instantlyKey = process.env.INSTANTLY_API_KEY;
   if (!instantlyKey || !email) return { stopped: 0, errors: [] };
 
   const errors: string[] = [];
   let stopped = 0;
 
+  const listBody = instantlyCampaignId
+    ? { campaign: instantlyCampaignId, search: email, limit: 10 }
+    : { search: email, limit: 10 };
+
   const listRes = await fetch("https://api.instantly.ai/api/v2/leads/list", {
     method: "POST",
     headers: { Authorization: `Bearer ${instantlyKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ search: email, limit: 10 }),
+    body: JSON.stringify(listBody),
   });
   if (!listRes.ok) {
     errors.push(`leads/list failed: ${listRes.status}`);

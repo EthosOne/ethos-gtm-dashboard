@@ -22,16 +22,19 @@ export async function POST(req: NextRequest) {
       .from("contacts")
       .update(update)
       .eq("id", id)
-      .select("email, instantly_enrolled")
+      .select("email, instantly_enrolled, instantly_campaign_id")
       .maybeSingle();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     let instantlyStopped = 0;
     if ("stage" in update && isClosedStage(update.stage as string) && updated?.email && updated?.instantly_enrolled) {
-      const { stopped } = await stopInstantlyOutreach(updated.email);
+      const { stopped } = await stopInstantlyOutreach(updated.email, updated.instantly_campaign_id);
       instantlyStopped = stopped;
       if (stopped > 0) {
-        await supabase.from("contacts").update({ instantly_enrolled: false }).eq("id", id);
+        await supabase
+          .from("contacts")
+          .update({ instantly_enrolled: false, outreach_status: "stopped" })
+          .eq("id", id);
       }
     }
 
