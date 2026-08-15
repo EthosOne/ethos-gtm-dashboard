@@ -71,7 +71,10 @@ async function checkN8N() {
       }),
       next: { revalidate: 0 },
     });
-    if (!loginRes.ok) return { status: "error", label: "Login failed" };
+    if (!loginRes.ok) {
+      const body = await loginRes.text().catch(() => "");
+      return { status: "error", label: `Login failed (${loginRes.status}): ${body.slice(0, 200)}` };
+    }
 
     const cookies = loginRes.headers.get("set-cookie") ?? "";
     const workflowIds = [
@@ -104,8 +107,8 @@ async function checkN8N() {
       workflows: results,
       url: process.env.N8N_ADMIN_URL ?? "#",
     };
-  } catch {
-    return { status: "error", label: "Unreachable" };
+  } catch (e) {
+    return { status: "error", label: `Unreachable: ${e instanceof Error ? e.message : String(e)}` };
   }
 }
 

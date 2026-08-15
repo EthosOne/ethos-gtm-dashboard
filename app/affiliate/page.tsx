@@ -38,6 +38,8 @@ export default function AffiliatePage() {
 
     if (res.ok) {
       setStatus("success");
+      const w = window as unknown as { gtag?: (...args: unknown[]) => void };
+      w.gtag?.("event", "affiliate_signup", { method: "form" });
     } else {
       const data = await res.json().catch(() => ({}));
       setErrorMsg(data.error ?? "Something went wrong. Try again.");

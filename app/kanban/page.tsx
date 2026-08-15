@@ -41,7 +41,7 @@ const STAGE_COLOR: Record<string, { bg: string; text: string; header: string }> 
   "Closed Lost": { bg: "#C1573B22", text: "#8A3A25", header: "#C1573B" },
 };
 
-const CARDS_PER_STAGE = 30;
+const PAGE_SIZE_OPTIONS = [25, 50, 100, 250];
 
 type Contact = {
   id: number;
@@ -53,6 +53,7 @@ type Contact = {
   stage: string;
   twlr_subscriber?: boolean;
   outreach_status?: string | null;
+  raw_payload?: { employee_count?: number | null; [key: string]: unknown } | null;
 };
 
 function cardName(c: Contact) {
@@ -80,6 +81,16 @@ function KanbanCard({
           {cardName(contact)}
         </div>
         <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+          {contact.raw_payload?.employee_count != null && (
+            <span style={{
+              background: "#7E9AA822", color: "#3A6070", borderRadius: 999,
+              padding: "1px 6px", fontSize: "0.6rem", fontWeight: 700,
+              letterSpacing: "0.04em", whiteSpace: "nowrap",
+            }}>
+              <i className="bi bi-people-fill" style={{ marginRight: 3 }} />
+              {contact.raw_payload!.employee_count!.toLocaleString()}
+            </span>
+          )}
           {contact.twlr_subscriber && (
             <span style={{
               background: "#F4A98822", color: "#C1573B", borderRadius: 999,
@@ -136,6 +147,15 @@ function SortableCard({ contact, t, onClick }: { contact: Contact; t: typeof LIG
             {cardName(contact)}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+            {contact.raw_payload?.employee_count != null && (
+              <span style={{
+                background: "#7E9AA822", color: "#3A6070", borderRadius: 999,
+                padding: "1px 6px", fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.04em", whiteSpace: "nowrap",
+              }}>
+                <i className="bi bi-people-fill" style={{ marginRight: 3 }} />
+                {contact.raw_payload!.employee_count!.toLocaleString()}
+              </span>
+            )}
             {contact.twlr_subscriber && (
               <span style={{
                 background: "#F4A98822", color: "#C1573B", borderRadius: 999,
@@ -181,8 +201,8 @@ function SortableCard({ contact, t, onClick }: { contact: Contact; t: typeof LIG
 }
 
 function StageColumn({
-  stage, contacts, count, t, onCardClick,
-}: { stage: string; contacts: Contact[]; count: number; t: typeof LIGHT; onCardClick: (c: Contact) => void }) {
+  stage, contacts, count, t, onCardClick, onLoadMore, loadingMore, pageSize,
+}: { stage: string; contacts: Contact[]; count: number; t: typeof LIGHT; onCardClick: (c: Contact) => void; onLoadMore: (stage: string) => void; loadingMore: boolean; pageSize: number }) {
   const sc = STAGE_COLOR[stage] ?? STAGE_COLOR["Cold"];
   const { setNodeRef, isOver } = useDroppable({ id: stage });
   return (
@@ -222,10 +242,19 @@ function StageColumn({
         <SortableContext items={contacts.map(c => c.id)} strategy={verticalListSortingStrategy}>
           {contacts.map(c => <SortableCard key={c.id} contact={c} t={t} onClick={() => onCardClick(c)} />)}
         </SortableContext>
-        {count > CARDS_PER_STAGE && (
-          <div style={{ fontSize: "0.72rem", color: t.textFaint, textAlign: "center", padding: "6px 0" }}>
-            +{(count - contacts.length).toLocaleString()} more — use Pipeline to see all
-          </div>
+        {contacts.length < count && (
+          <button
+            onClick={() => onLoadMore(stage)}
+            disabled={loadingMore}
+            style={{
+              background: "none", border: `1px solid ${t.border}`, color: t.textMuted,
+              borderRadius: 8, padding: "6px 0", fontSize: "0.72rem", fontWeight: 600,
+              cursor: loadingMore ? "default" : "pointer", width: "100%", fontFamily: "inherit",
+              opacity: loadingMore ? 0.6 : 1,
+            }}
+          >
+            {loadingMore ? "Loading…" : `Load ${Math.min(pageSize, count - contacts.length)} more (${(count - contacts.length).toLocaleString()} left)`}
+          </button>
         )}
         {contacts.length === 0 && (
           <div style={{ fontSize: "0.75rem", color: t.textFaint, textAlign: "center", padding: "20px 0" }}>
@@ -240,6 +269,9 @@ function StageColumn({
 export default function KanbanPage() {
   const [contactsByStage, setContactsByStage] = useState<Record<string, Contact[]>>({});
   const [stageCounts, setStageCounts]         = useState<Record<string, number>>({});
+  const [stageOffsets, setStageOffsets]       = useState<Record<string, number>>({});
+  const [loadingMore, setLoadingMore]         = useState<Record<string, boolean>>({});
+  const [pageSize, setPageSize]               = useState(50);
   const [loading, setLoading]                 = useState(true);
   const [dark, setDark]                       = useState(false);
   const [activeContact, setActiveContact]     = useState<Contact | null>(null);
@@ -253,16 +285,21 @@ export default function KanbanPage() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setStageOffsets({});
     const results: Record<string, Contact[]> = {};
     const counts: Record<string, number> = {};
 
     await Promise.all(STAGES.map(async stage => {
-      const { data, count } = await supabase
+      let q = supabase
         .from("contacts")
-        .select("id,email,first_name,last_name,company,company_domain,job_title,linkedin_url,city,country,stage,twlr_subscriber,outreach_status,notes,icp_score,icp_tier,created_at,updated_at,demo_scheduled,source", { count: "exact" })
-        .eq("stage", stage)
+        .select("id,email,first_name,last_name,company,company_domain,job_title,linkedin_url,city,country,stage,twlr_subscriber,outreach_status,notes,icp_score,icp_tier,created_at,updated_at,demo_scheduled,demo_scheduled_at,demo_meeting_url,affiliate_code,source,raw_payload", { count: "exact" })
+        .eq("stage", stage);
+      // Nurture = actively being kept warm — unsubscribed contacts don't belong
+      // here even if nobody's moved their stage yet (see /leads "Unsubscribed" filter).
+      if (stage === "Nurture") q = q.is("twlr_unsubscribed_at", null);
+      const { data, count } = await q
         .order("created_at", { ascending: false })
-        .limit(CARDS_PER_STAGE);
+        .limit(pageSize);
       results[stage] = data ?? [];
       counts[stage] = count ?? 0;
     }));
@@ -270,9 +307,25 @@ export default function KanbanPage() {
     setContactsByStage(results);
     setStageCounts(counts);
     setLoading(false);
-  }, []);
+  }, [pageSize]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  const loadMore = useCallback(async (stage: string) => {
+    const offset = stageOffsets[stage] ?? pageSize;
+    setLoadingMore(prev => ({ ...prev, [stage]: true }));
+    let mq = supabase
+      .from("contacts")
+      .select("id,email,first_name,last_name,company,company_domain,job_title,linkedin_url,city,country,stage,twlr_subscriber,outreach_status,notes,icp_score,icp_tier,created_at,updated_at,demo_scheduled,demo_scheduled_at,demo_meeting_url,affiliate_code,source,raw_payload")
+      .eq("stage", stage);
+    if (stage === "Nurture") mq = mq.is("twlr_unsubscribed_at", null);
+    const { data } = await mq
+      .order("created_at", { ascending: false })
+      .range(offset, offset + pageSize - 1);
+    setContactsByStage(prev => ({ ...prev, [stage]: [...(prev[stage] ?? []), ...(data ?? [])] }));
+    setStageOffsets(prev => ({ ...prev, [stage]: offset + pageSize }));
+    setLoadingMore(prev => ({ ...prev, [stage]: false }));
+  }, [stageOffsets, pageSize]);
 
   useEffect(() => {
     const channel = supabase
@@ -376,6 +429,25 @@ export default function KanbanPage() {
             </h1>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {/* Page size selector */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: "0.72rem", color: t.textFaint, fontWeight: 600, whiteSpace: "nowrap" }}>per col</span>
+              <div style={{ display: "flex", alignItems: "center", background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, overflow: "hidden" }}>
+              {PAGE_SIZE_OPTIONS.map(n => (
+                <button
+                  key={n}
+                  onClick={() => setPageSize(n)}
+                  style={{
+                    background: pageSize === n ? t.text : "none",
+                    color: pageSize === n ? t.bg : t.textMuted,
+                    border: "none", padding: "5px 10px",
+                    fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                    transition: "background 0.15s, color 0.15s",
+                  }}
+                >{n}</button>
+              ))}
+              </div>
+            </div>
             <Link href="/" style={{
               background: "none", border: `1px solid ${t.border}`, color: t.textMuted,
               textDecoration: "none", borderRadius: 999, padding: "6px 14px",
@@ -420,6 +492,9 @@ export default function KanbanPage() {
                   count={stageCounts[stage] ?? 0}
                   t={t}
                   onCardClick={(c) => { setDrawerContact(c as unknown as DrawerContact); setDrawerOpen(true); }}
+                  onLoadMore={loadMore}
+                  loadingMore={loadingMore[stage] ?? false}
+                  pageSize={pageSize}
                 />
               ))}
             </div>
@@ -436,7 +511,7 @@ export default function KanbanPage() {
           display: "flex", justifyContent: "space-between",
         }}>
           <span>Ethos One · Kanban · 2026</span>
-          <span style={{ fontSize: "0.7rem" }}>Showing up to {CARDS_PER_STAGE} per column · drag to move</span>
+          <span style={{ fontSize: "0.7rem" }}>Showing up to {pageSize} per column · drag to move</span>
         </div>
       </div>
 
@@ -470,6 +545,9 @@ export default function KanbanPage() {
               return { ...prev, [stage]: Math.max(0, (prev[stage] ?? 0) - 1) };
             });
             setDrawerOpen(false);
+          }}
+          onOpenContact={(referrer) => {
+            setDrawerContact(referrer as unknown as DrawerContact);
           }}
         />
       )}

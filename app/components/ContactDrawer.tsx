@@ -10,6 +10,23 @@ const supabase = createClient(
 
 const ALL_STAGES = ["Cold", "Nurture", "Qualified", "Demo Booked", "Closed Won", "Closed Lost"];
 
+// Known raw_payload keys across every enrichment source we run today (Apify company
+// lookup, Trigify signals). Kept as a fixed, ordered list so every contact's drawer
+// renders the same fields — missing ones show greyed instead of the row vanishing.
+// Add new keys here as new enrichment sources are wired up.
+const ENRICHMENT_FIELDS: { key: string; label: string }[] = [
+  { key: "website", label: "Website" },
+  { key: "linkedin_company_url", label: "LinkedIn Company Url" },
+  { key: "industry", label: "Industry" },
+  { key: "enriched_via", label: "Enriched Via" },
+  { key: "enriched_at", label: "Enriched At" },
+  { key: "trigify_search", label: "Trigify Search" },
+  { key: "post_url", label: "Post Url" },
+  { key: "published_at", label: "Published At" },
+  { key: "engagement", label: "Engagement" },
+  { key: "collected_at", label: "Collected At" },
+];
+
 type EpisodeBuilderSubmission = {
   episode_topic: string | null;
   description_notes: string | null;
@@ -26,6 +43,7 @@ export type Contact = {
   last_name: string | null;
   company: string | null;
   company_domain: string | null;
+  raw_payload: Record<string, unknown> | null;
   job_title: string | null;
   linkedin_url: string | null;
   city: string | null;
@@ -44,7 +62,11 @@ export type Contact = {
   created_at: string;
   updated_at: string;
   demo_scheduled: string | null;
+  demo_scheduled_at: string | null;
+  demo_meeting_url: string | null;
   affiliate_code: string | null;
+  is_affiliate: boolean | null;
+  affiliate_ref_code: string | null;
   first_touch_source: { utm_source?: string; utm_medium?: string; utm_campaign?: string } | null;
   guest_signup_at: string | null;
   episode_builder_submitted_at: string | null;
@@ -57,6 +79,7 @@ type Props = {
   onClose: () => void;
   onSaved: (contact: Contact) => void;
   onDeleted: (id: number) => void;
+  onOpenContact?: (contact: Contact) => void;
 };
 
 const LIGHT = {
@@ -70,14 +93,16 @@ const DARK = {
   textFaint: "#5C5A6A", accent: "#F4A988",
 };
 
-const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_scheduled"|"episode_builder_submitted_at"> = {
+const EMPTY: Omit<Contact, "id"|"source"|"created_at"|"updated_at"|"demo_scheduled"|"episode_builder_submitted_at"|"demo_scheduled_at"|"demo_meeting_url"|"is_affiliate"|"affiliate_ref_code"> = {
   email: "", phone: "", first_name: "", last_name: "", company: "", company_domain: "",
   job_title: "", linkedin_url: "", city: "", country: "", stage: "Cold",
   twlr_subscriber: false, beehiiv_subscription_id: null, twlr_unsubscribed_at: null, outreach_status: "active", list_name: null, notes: "", icp_score: null, icp_tier: null, beehiiv_engaged: false,
-  affiliate_code: null, first_touch_source: null, guest_signup_at: null,
+  affiliate_code: null, first_touch_source: null, guest_signup_at: null, raw_payload: null,
 };
 
-export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, onDeleted }: Props) {
+type Campaign = { id: string; name: string; active: boolean };
+
+export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, onDeleted, onOpenContact }: Props) {
   const t = dark ? DARK : LIGHT;
   const [form, setForm] = useState({ ...EMPTY });
   const [saving, setSaving] = useState(false);
@@ -87,6 +112,24 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
   const [subscribing, setSubscribing] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [episodeSubmission, setEpisodeSubmission] = useState<EpisodeBuilderSubmission | null>(null);
+  const [referrerLookupState, setReferrerLookupState] = useState<"idle" | "loading" | "not_found">("idle");
+
+  async function openReferrer() {
+    if (!onOpenContact || !contact?.affiliate_code) return;
+    setReferrerLookupState("loading");
+    const { data } = await supabase
+      .from("contacts")
+      .select("*")
+      .eq("affiliate_ref_code", contact.affiliate_code)
+      .maybeSingle();
+    if (data) {
+      onOpenContact(data as unknown as Contact);
+      setReferrerLookupState("idle");
+    } else {
+      setReferrerLookupState("not_found");
+      setTimeout(() => setReferrerLookupState("idle"), 2000);
+    }
+  }
 
   useEffect(() => {
     if (!contact?.twlr_subscriber || !contact?.beehiiv_subscription_id) return;
@@ -130,6 +173,44 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
     onSaved({ ...contact, twlr_subscriber: true, beehiiv_subscription_id: json.beehiiv_subscription_id ?? null, twlr_unsubscribed_at: null });
   }
 
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [selectedCampaign, setSelectedCampaign] = useState("");
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrollResult, setEnrollResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/campaigns")
+      .then(r => r.json())
+      .then(d => setCampaigns(d.campaigns ?? []))
+      .catch(() => null);
+  }, []);
+
+  async function enroll() {
+    if (!selectedCampaign || !contact) return;
+    setEnrolling(true);
+    setEnrollResult(null);
+    const camp = campaigns.find(c => c.id === selectedCampaign);
+    const res = await fetch("/api/leads/enroll-campaign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contact_id: contact.id,
+        campaign_id: selectedCampaign,
+        campaign_name: camp?.name ?? "",
+        email: contact.email,
+        first_name: contact.first_name,
+        last_name: contact.last_name,
+        company: contact.company,
+      }),
+    });
+    const json = await res.json();
+    setEnrolling(false);
+    setEnrollResult(res.ok
+      ? { ok: true, msg: `Enrolled in "${camp?.name}"` }
+      : { ok: false, msg: json.error ?? "Error enrolling" }
+    );
+  }
+
   useEffect(() => {
     if (contact) {
       setForm({
@@ -156,6 +237,7 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
         affiliate_code: contact.affiliate_code ?? null,
         first_touch_source: contact.first_touch_source ?? null,
         guest_signup_at: contact.guest_signup_at ?? null,
+        raw_payload: contact.raw_payload ?? null,
       });
     } else {
       setForm({ ...EMPTY });
@@ -298,6 +380,52 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
             </div>
           </div>
 
+          {/* Company size — dedicated field, most-used enrichment value for SME decisions.
+              Always rendered (same shape for every contact) — greyed placeholder when empty,
+              so the drawer layout doesn't shift/shapeshift between contacts. */}
+          <div>
+            <label style={labelStyle}>Company Size</label>
+            {contact?.raw_payload?.employee_count != null ? (
+              <div style={{ ...inputStyle, display: "flex", alignItems: "center", background: t.surfaceAlt, color: t.textMuted }}>
+                {String(contact.raw_payload.employee_count)} employees
+                {contact.raw_payload.industry ? ` · ${String(contact.raw_payload.industry)}` : ""}
+                <span style={{ marginLeft: 8, fontSize: "0.72rem", opacity: 0.7 }}>(from enrichment, read-only)</span>
+              </div>
+            ) : (
+              <div style={{ ...inputStyle, display: "flex", alignItems: "center", background: "repeating-linear-gradient(45deg, transparent, transparent 6px, " + t.border + " 6px, " + t.border + " 7px)", color: t.textFaint, fontStyle: "italic" }}>
+                No enrichment data
+              </div>
+            )}
+          </div>
+
+          {/* Enrichment data (read-only) — fixed set of known fields across every
+              enrichment source we run (Apify company lookup, Trigify signals), always
+              rendered in the same order so every contact's drawer has the same shape.
+              Missing fields show a greyed/hatched "dummy" placeholder instead of the
+              row disappearing — makes it obvious at a glance what's real vs unfilled. */}
+          <div>
+            <label style={labelStyle}>Enrichment Data</label>
+            <div style={{ ...inputStyle, height: "auto", background: t.surfaceAlt, color: t.textMuted, padding: "8px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
+              {ENRICHMENT_FIELDS.map(({ key, label }) => {
+                const value = contact?.raw_payload?.[key];
+                const has = value != null && value !== "";
+                const display = has ? (typeof value === "object" ? JSON.stringify(value) : String(value)) : "—";
+                const isUrl = has && typeof value === "string" && /^https?:\/\//.test(value);
+                return (
+                  <div key={key} style={{ fontSize: "0.78rem", display: "flex", gap: 6, opacity: has ? 1 : 0.45 }}>
+                    <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{label}:</span>
+                    {isUrl ? (
+                      <a href={value as string} target="_blank" rel="noreferrer" style={{ color: t.accent, wordBreak: "break-all" }}>{display}</a>
+                    ) : (
+                      <span style={{ wordBreak: "break-word", fontStyle: has ? "normal" : "italic" }}>{display}</span>
+                    )}
+                  </div>
+                );
+              })}
+              <span style={{ fontSize: "0.68rem", opacity: 0.6, marginTop: 2 }}>(read-only, from enrichment — greyed rows have no data yet)</span>
+            </div>
+          </div>
+
           {/* Role */}
           <div>
             <label style={labelStyle}>Job Title</label>
@@ -329,6 +457,20 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
               {ALL_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
+
+          {/* Demo booking — read only */}
+          {contact?.demo_scheduled_at && (
+            <div style={{ padding: "10px 14px", background: "#E8B66A22", borderRadius: 10, border: "1px solid #E8B66A55" }}>
+              <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "#9A6A00" }}>
+                📅 Demo {new Date(contact.demo_scheduled_at) > new Date() ? "scheduled for" : "was on"} {new Date(contact.demo_scheduled_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </div>
+              {contact.demo_meeting_url && (
+                <a href={contact.demo_meeting_url} target="_blank" rel="noreferrer" style={{ fontSize: "0.75rem", color: "#9A6A00", textDecoration: "underline" }}>
+                  Ver reunión →
+                </a>
+              )}
+            </div>
+          )}
 
           {/* Guest signup — read only */}
           {contact?.guest_signup_at && (
@@ -377,10 +519,19 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
             </div>
           )}
 
-          {/* Affiliate referral — read only */}
+          {/* Affiliate referral — read only, click to open the referrer's own contact */}
           {contact?.affiliate_code && (
-            <div style={{ padding: "10px 14px", background: "#7A8A5C22", borderRadius: 10, border: "1px solid #7A8A5C55" }}>
-              <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "#3F5030" }}>★ Referred by {contact.affiliate_code}</div>
+            <div
+              onClick={openReferrer}
+              style={{
+                padding: "10px 14px", background: "#7A8A5C22", borderRadius: 10, border: "1px solid #7A8A5C55",
+                cursor: onOpenContact ? "pointer" : "default",
+              }}
+            >
+              <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "#3F5030" }}>
+                ★ Referred by {contact.affiliate_code}
+                {onOpenContact && <span style={{ fontWeight: 400, opacity: 0.7 }}> — {referrerLookupState === "loading" ? "opening…" : referrerLookupState === "not_found" ? "not found" : "click to open →"}</span>}
+              </div>
               {contact.first_touch_source && (
                 <div style={{ fontSize: "0.72rem", color: t.textFaint, marginTop: 2 }}>
                   {[contact.first_touch_source.utm_source, contact.first_touch_source.utm_medium, contact.first_touch_source.utm_campaign].filter(Boolean).join(" / ")}
@@ -485,6 +636,52 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
               }} />
             </button>
           </div>
+
+          {/* Enroll in campaign */}
+          {!isNew && (
+            <div style={{ borderRadius: 10, border: `1px solid ${t.border}`, overflow: "hidden" }}>
+              <div style={{ padding: "10px 14px", background: t.surfaceAlt }}>
+                <div style={{ fontSize: "0.83rem", fontWeight: 600, color: t.text, marginBottom: 8 }}>
+                  Enroll in campaign
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <select
+                    value={selectedCampaign}
+                    onChange={e => { setSelectedCampaign(e.target.value); setEnrollResult(null); }}
+                    style={{ ...inputStyle, flex: 1, cursor: "pointer" }}
+                  >
+                    <option value="">Select campaign…</option>
+                    {campaigns.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.active ? "▶ " : "⏸ "}{c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={enroll}
+                    disabled={!selectedCampaign || enrolling}
+                    style={{
+                      background: selectedCampaign ? t.accent : t.border,
+                      color: selectedCampaign ? "#fff" : t.textFaint,
+                      border: "none", borderRadius: 8, padding: "7px 16px",
+                      fontSize: "0.8rem", fontWeight: 700, cursor: selectedCampaign ? "pointer" : "default",
+                      fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0,
+                      opacity: enrolling ? 0.7 : 1,
+                    }}
+                  >{enrolling ? "…" : "Enroll →"}</button>
+                </div>
+                {enrollResult && (
+                  <div style={{
+                    marginTop: 8, fontSize: "0.75rem", fontWeight: 600, padding: "5px 10px",
+                    borderRadius: 6, background: enrollResult.ok ? "#7A8A5C22" : "#C1573B22",
+                    color: enrollResult.ok ? "#3F5030" : "#C1573B",
+                  }}>
+                    {enrollResult.ok ? "✓ " : "✕ "}{enrollResult.msg}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Notes */}
           <div>

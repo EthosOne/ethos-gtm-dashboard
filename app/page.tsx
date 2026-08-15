@@ -104,6 +104,7 @@ export default function Dashboard() {
   const [drillLoading, setDrillLoading] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [toolHealth, setToolHealth] = useState<Record<string, { status: string; label: string }> | null>(null);
+  const [ga4, setGa4] = useState<{ activeUsers30d: number; demoBookedEvents30d: number; ethosoneSessions30d: number; twlrSessions30d: number; ethosoneUsers30d: number; twlrUsers30d: number } | null>(null);
 
   // persist theme
   useEffect(() => {
@@ -139,6 +140,10 @@ export default function Dashboard() {
     fetchHealth();
     const interval = setInterval(fetchHealth, 60_000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/ga4-stats").then(r => r.json()).then(setGa4).catch(() => {});
   }, []);
 
   async function loadDrilldown(type: "subscribers" | "engaged" | "outreach") {
@@ -504,6 +509,48 @@ export default function Dashboard() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* GA4 Analytics */}
+        {ga4 && (
+          <div style={{ marginTop: "1rem", background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, padding: "0.9rem 1.25rem" }}>
+            <div style={{ fontSize: "0.68rem", fontWeight: 700, color: t.textFaint, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 10 }}>
+              Analytics · Last 30 days
+            </div>
+
+            {/* Totals — both sites combined */}
+            <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 14 }}>
+              {[
+                { label: "Active Users",     value: ga4.activeUsers30d,        sub: "Both sites combined" },
+                { label: "Sessions",         value: ga4.ethosoneSessions30d + ga4.twlrSessions30d, sub: "Both sites combined" },
+                { label: "Demos Booked",     value: ga4.demoBookedEvents30d,   sub: "GA4 conversion event" },
+              ].map(({ label, value, sub }) => (
+                <div key={label}>
+                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: t.text, lineHeight: 1.1 }}>{value.toLocaleString()}</div>
+                  <div style={{ fontSize: "0.75rem", fontWeight: 600, color: t.text }}>{label}</div>
+                  <div style={{ fontSize: "0.68rem", color: t.textFaint }}>{sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Per-site breakdown */}
+            <div style={{ borderTop: `1px solid ${t.border}`, paddingTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {[
+                { label: "ethosone.ai", users: ga4.ethosoneUsers30d, sessions: ga4.ethosoneSessions30d, color: t.accent },
+                { label: "TWLR",        users: ga4.twlrUsers30d,     sessions: ga4.twlrSessions30d,     color: "#7E9AA8" },
+              ].map(({ label, users, sessions, color }) => (
+                <div key={label} style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  background: t.surfaceAlt, border: `1px solid ${t.border}`,
+                  borderRadius: 8, padding: "8px 14px",
+                }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block", flexShrink: 0 }} />
+                  <span style={{ fontSize: "0.8rem", fontWeight: 700, color: t.text }}>{label}</span>
+                  <span style={{ fontSize: "0.75rem", color: t.textMuted }}>{users.toLocaleString()} users · {sessions.toLocaleString()} sessions</span>
+                </div>
+              ))}
             </div>
           </div>
         )}

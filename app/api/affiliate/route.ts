@@ -17,6 +17,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Server error." }, { status: 500 });
   }
 
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Reuse the existing referral code if this contact already has one
+  // (re-applying shouldn't invalidate links already shared).
+  const existingRes = await fetch(
+    `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(normalizedEmail)}&select=affiliate_ref_code`,
+    { headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` } }
+  );
+  const existing = existingRes.ok ? await existingRes.json() : [];
+  const refCode: string =
+    existing[0]?.affiliate_ref_code ??
+    `${first_name.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12) || "REF"}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+
   const res = await fetch(`${SB_URL}/rest/v1/contacts`, {
     method: "POST",
     headers: {
@@ -26,11 +39,12 @@ export async function POST(req: NextRequest) {
       "Prefer": "resolution=merge-duplicates,return=minimal",
     },
     body: JSON.stringify({
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
       first_name: first_name.trim(),
       last_name: (last_name ?? "").trim() || null,
       source: "affiliate",
-      stage: "Affiliate",
+      is_affiliate: true,
+      affiliate_ref_code: refCode,
       notes: how_to_promote?.trim() || null,
     }),
   });
