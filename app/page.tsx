@@ -136,7 +136,13 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const fetchHealth = () => fetch("/api/tool-health").then(r => r.json()).then(setToolHealth).catch(() => {});
+    const fetchHealth = () => fetch("/api/tool-health").then(r => r.json()).then(setToolHealth).catch(() =>
+      setToolHealth({
+        instantly: { status: "error", label: "Fetch failed" },
+        n8n: { status: "error", label: "Fetch failed" },
+        beehiiv: { status: "error", label: "Fetch failed" },
+      })
+    );
     fetchHealth();
     const interval = setInterval(fetchHealth, 60_000);
     return () => clearInterval(interval);

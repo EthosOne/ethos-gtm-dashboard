@@ -3,12 +3,23 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const CHECK_TIMEOUT_MS = 8000;
+
+function withTimeout(ms: number) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return { signal: controller.signal, clear: () => clearTimeout(timer) };
+}
+
 async function checkInstantly() {
+  const { signal, clear } = withTimeout(CHECK_TIMEOUT_MS);
   try {
     const res = await fetch("https://api.instantly.ai/api/v2/accounts?limit=100", {
       headers: { Authorization: `Bearer ${process.env.INSTANTLY_API_KEY}` },
       next: { revalidate: 0 },
+      signal,
     });
+    clear();
     if (!res.ok) return { status: "error", label: "API error" };
     const data = await res.json();
     const accounts = data.items ?? [];
@@ -55,12 +66,14 @@ async function checkInstantly() {
       senders,
       url: "https://app.instantly.ai/app/accounts",
     };
-  } catch {
-    return { status: "error", label: "Unreachable" };
+  } catch (e) {
+    clear();
+    return { status: "error", label: e instanceof Error && e.name === "AbortError" ? "Timeout (8s)" : "Unreachable" };
   }
 }
 
 async function checkN8N() {
+  const { signal, clear } = withTimeout(CHECK_TIMEOUT_MS);
   try {
     const loginRes = await fetch(`${process.env.N8N_ADMIN_URL}/rest/login`, {
       method: "POST",
@@ -70,6 +83,7 @@ async function checkN8N() {
         password: process.env.N8N_ADMIN_PASS,
       }),
       next: { revalidate: 0 },
+      signal,
     });
     if (!loginRes.ok) {
       const body = await loginRes.text().catch(() => "");
@@ -92,12 +106,14 @@ async function checkN8N() {
         const r = await fetch(`${process.env.N8N_ADMIN_URL}/rest/workflows/${id}`, {
           headers: { Cookie: cookies },
           next: { revalidate: 0 },
+          signal,
         });
         if (!r.ok) return { id, active: false };
         const d = await r.json();
         return { id, active: d.data?.active ?? false, name: d.data?.name ?? id };
       })
     );
+    clear();
 
     const active = results.filter((w) => w.active).length;
     const total = results.length;
@@ -108,19 +124,24 @@ async function checkN8N() {
       url: process.env.N8N_ADMIN_URL ?? "#",
     };
   } catch (e) {
-    return { status: "error", label: `Unreachable: ${e instanceof Error ? e.message : String(e)}` };
+    clear();
+    const timedOut = e instanceof Error && e.name === "AbortError";
+    return { status: "error", label: timedOut ? `Timeout (${CHECK_TIMEOUT_MS / 1000}s) — n8n unreachable` : `Unreachable: ${e instanceof Error ? e.message : String(e)}` };
   }
 }
 
 async function checkBeehiiv() {
+  const { signal, clear } = withTimeout(CHECK_TIMEOUT_MS);
   try {
     const res = await fetch(
       `https://api.beehiiv.com/v2/publications/${process.env.BEEHIIV_PUBLICATION_ID}/posts?limit=1&order_by=publish_date&direction=desc`,
       {
         headers: { Authorization: `Bearer ${process.env.BEEHIIV_API_KEY}` },
         next: { revalidate: 0 },
+        signal,
       }
     );
+    clear();
     if (!res.ok) return { status: "error", label: "API error" };
     const data = await res.json();
     const last = data.data?.[0];
@@ -139,8 +160,9 @@ async function checkBeehiiv() {
       date,
       url: last.web_url ?? `https://app.beehiiv.com/publications/${process.env.BEEHIIV_PUBLICATION_ID}/posts`,
     };
-  } catch {
-    return { status: "error", label: "Unreachable" };
+  } catch (e) {
+    clear();
+    return { status: "error", label: e instanceof Error && e.name === "AbortError" ? "Timeout (8s)" : "Unreachable" };
   }
 }
 
