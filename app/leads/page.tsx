@@ -39,6 +39,7 @@ type Contact = {
   affiliate_ref_code: string | null;
   first_touch_source: { utm_source?: string; utm_medium?: string; utm_campaign?: string } | null;
   raw_payload: { employee_count?: number | null; [key: string]: unknown } | null;
+  notes: string | null;
 };
 
 const LIGHT = {
@@ -65,6 +66,14 @@ const STAGE_COLORS: Record<string, { bg: string; text: string }> = {
 
 const ALL_STAGES = ["All", "Demo Booked", "Qualified", "Cold", "Nurture", "Closed Won", "Closed Lost"];
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 250];
+
+function linkedinStatus(notes: string | null): { label: string; bg: string; text: string } | null {
+  if (!notes) return null;
+  if (notes.includes("linkedin_replied:")) return { label: "Respondió", bg: "#7A8A5C22", text: "#3F5030" };
+  if (notes.includes("linkedin_dm_sent:")) return { label: "DM enviado", bg: "#7E9AA822", text: "#3A6070" };
+  if (notes.includes("linkedin_connect_sent:")) return { label: "Conexión enviada", bg: "#9D9BAA22", text: "#5A5870" };
+  return null;
+}
 
 export default function LeadsPage() {
   const [contacts, setContacts]       = useState<Contact[]>([]);
@@ -214,7 +223,7 @@ export default function LeadsPage() {
     if (episodeBuilderOnly) q = q.not("episode_builder_submitted_at", "is", null);
     if (affiliateOnly) q = q.eq("is_affiliate", true);
     if (referredOnly) q = q.not("affiliate_code", "is", null);
-    if (linkedinDmOnly) q = q.ilike("notes", "%linkedin_dm_sent%");
+    if (linkedinDmOnly) q = q.ilike("notes", "%linkedin_connect_sent%");
     if (listFilter) q = q.eq("list_name", listFilter);
     if (search) {
       q = q.or(
@@ -259,7 +268,7 @@ export default function LeadsPage() {
       .then(({ count }) => setAffiliateCount(count ?? 0));
     supabase.from("contacts").select("*", { count: "exact", head: true }).not("affiliate_code", "is", null)
       .then(({ count }) => setReferredCount(count ?? 0));
-    supabase.from("contacts").select("*", { count: "exact", head: true }).ilike("notes", "%linkedin_dm_sent%")
+    supabase.from("contacts").select("*", { count: "exact", head: true }).ilike("notes", "%linkedin_connect_sent%")
       .then(({ count }) => setLinkedinDmCount(count ?? 0));
   }, []);
 
@@ -536,7 +545,7 @@ export default function LeadsPage() {
             fontSize: "0.78rem", fontWeight: 700, fontFamily: "inherit",
             letterSpacing: "0.03em", transition: "all 0.15s",
           }}>
-            LinkedIn DM{(() => { const n = linkedinDmOnly ? total : linkedinDmCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{linkedinDmOnly && " ✓"}
+            LinkedIn Outreach{(() => { const n = linkedinDmOnly ? total : linkedinDmCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{linkedinDmOnly && " ✓"}
           </button>
           {listOptions.length > 0 && (
             <select
@@ -604,6 +613,7 @@ export default function LeadsPage() {
                     { label: "Company",  field: "company" },
                     { label: "Role",     field: "job_title" },
                     { label: "Stage",    field: "stage" },
+                    { label: "LinkedIn", field: null },
                     { label: "Location", field: "country" },
                     { label: "List",     field: null },
                     { label: "Added",    field: "created_at" },
@@ -759,6 +769,14 @@ export default function LeadsPage() {
                             <span style={{ color: "#7A8A5C", fontSize: "0.75rem", fontWeight: 700 }}>✓</span>
                           )}
                         </div>
+                      </td>
+                      <td style={{ padding: "11px 16px", whiteSpace: "nowrap" }}>
+                        {(() => {
+                          const ls = linkedinStatus(c.notes);
+                          return ls
+                            ? <span style={{ background: ls.bg, color: ls.text, borderRadius: 999, padding: "3px 10px", fontSize: "0.7rem", fontWeight: 600 }}>{ls.label}</span>
+                            : <span style={{ color: t.textFaint, fontSize: "0.75rem" }}>—</span>;
+                        })()}
                       </td>
                       <td style={{ padding: "11px 16px", color: t.textMuted, fontSize: "0.82rem", whiteSpace: "nowrap" }}>
                         {[c.city, c.country].filter(Boolean).join(", ") || "—"}
