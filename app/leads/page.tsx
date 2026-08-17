@@ -80,7 +80,11 @@ export default function LeadsPage() {
   const [episodeBuilderCount, setEpisodeBuilderCount] = useState(0);
   const [affiliateCount, setAffiliateCount] = useState(0);
   const [referredCount, setReferredCount] = useState(0);
-  const [stage, setStage]             = useState("All");
+  const [stage, setStage]             = useState(() => {
+    if (typeof window === "undefined") return "All";
+    const fromUrl = new URLSearchParams(window.location.search).get("stage");
+    return fromUrl && ALL_STAGES.includes(fromUrl) ? fromUrl : "All";
+  });
   const [page, setPage]               = useState(0);
   const [sortField, setSortField]     = useState("created_at");
   const [sortDir, setSortDir]         = useState<"asc"|"desc">("desc");

@@ -105,6 +105,8 @@ export default function Dashboard() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [toolHealth, setToolHealth] = useState<Record<string, { status: string; label: string }> | null>(null);
   const [ga4, setGa4] = useState<{ activeUsers30d: number; demoBookedEvents30d: number; ethosoneSessions30d: number; twlrSessions30d: number; ethosoneUsers30d: number; twlrUsers30d: number } | null>(null);
+  const [newDemos, setNewDemos] = useState<{ id: number; name: string; company: string | null; demo_scheduled_at: string }[]>([]);
+  const [bellOpen, setBellOpen] = useState(false);
 
   // persist theme
   useEffect(() => {
@@ -151,6 +153,39 @@ export default function Dashboard() {
   useEffect(() => {
     fetch("/api/ga4-stats").then(r => r.json()).then(setGa4).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    async function loadNewDemos() {
+      const lastSeen = localStorage.getItem("ethos-demo-bell-last-seen") || "1970-01-01T00:00:00Z";
+      const { data } = await supabase
+        .from("contacts")
+        .select("id,first_name,last_name,company,demo_scheduled_at")
+        .eq("stage", "Demo Booked")
+        .not("demo_scheduled_at", "is", null)
+        .gt("demo_scheduled_at", lastSeen)
+        .order("demo_scheduled_at", { ascending: false })
+        .limit(20);
+      setNewDemos((data ?? []).map(r => ({
+        id: r.id,
+        name: [r.first_name, r.last_name].filter(Boolean).join(" ") || "Unknown",
+        company: r.company,
+        demo_scheduled_at: r.demo_scheduled_at,
+      })));
+    }
+    loadNewDemos();
+    const channel = supabase
+      .channel("demo-bell-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "contacts", filter: "stage=eq.Demo Booked" }, loadNewDemos)
+      .subscribe();
+    const interval = setInterval(loadNewDemos, 60_000);
+    return () => { supabase.removeChannel(channel); clearInterval(interval); };
+  }, []);
+
+  function markDemosSeen() {
+    localStorage.setItem("ethos-demo-bell-last-seen", new Date().toISOString());
+    setNewDemos([]);
+    setBellOpen(false);
+  }
 
   async function loadDrilldown(type: "subscribers" | "engaged" | "outreach") {
     if (drilldown === type) { setDrilldown(null); return; }
@@ -254,6 +289,105 @@ export default function Dashboard() {
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              {/* Demo booked bell */}
+              <div style={{ position: "relative" }}>
+                <button
+                  onClick={() => setBellOpen(o => !o)}
+                  aria-label="Demo booked notifications"
+                  style={{
+                    background: "none",
+                    border: `1px solid ${t.border}`,
+                    color: newDemos.length > 0 ? t.accent : t.textMuted,
+                    borderRadius: 999,
+                    width: 32,
+                    height: 32,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    position: "relative",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  <i className="bi bi-bell-fill" style={{ fontSize: "0.9rem" }} />
+                  {newDemos.length > 0 && (
+                    <span style={{
+                      position: "absolute",
+                      top: -4,
+                      right: -4,
+                      background: "#C1573B",
+                      color: "#fff",
+                      borderRadius: 999,
+                      fontSize: "0.65rem",
+                      fontWeight: 700,
+                      minWidth: 16,
+                      height: 16,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "0 3px",
+                      lineHeight: 1,
+                    }}>
+                      {newDemos.length}
+                    </span>
+                  )}
+                </button>
+                {bellOpen && (
+                  <div style={{
+                    position: "absolute",
+                    top: 40,
+                    right: 0,
+                    width: 280,
+                    background: t.surface,
+                    border: `1px solid ${t.border}`,
+                    borderRadius: 12,
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                    zIndex: 20,
+                    overflow: "hidden",
+                  }}>
+                    <div style={{ padding: "10px 14px", borderBottom: `1px solid ${t.border}`, fontSize: "0.78rem", fontWeight: 700, color: t.text }}>
+                      Demo Booked — new
+                    </div>
+                    {newDemos.length === 0 ? (
+                      <div style={{ padding: "16px 14px", fontSize: "0.8rem", color: t.textFaint }}>Nothing new to review.</div>
+                    ) : (
+                      <div style={{ maxHeight: 260, overflowY: "auto" }}>
+                        {newDemos.map(d => (
+                          <a key={d.id} href="/leads?stage=Demo+Booked" style={{
+                            display: "block",
+                            padding: "10px 14px",
+                            borderBottom: `1px solid ${t.border}`,
+                            textDecoration: "none",
+                            color: t.text,
+                          }}>
+                            <div style={{ fontSize: "0.82rem", fontWeight: 600 }}>{d.name}</div>
+                            <div style={{ fontSize: "0.72rem", color: t.textFaint }}>
+                              {[d.company, new Date(d.demo_scheduled_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })].filter(Boolean).join(" · ")}
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      onClick={markDemosSeen}
+                      style={{
+                        width: "100%",
+                        padding: "10px 14px",
+                        background: "none",
+                        border: "none",
+                        borderTop: `1px solid ${t.border}`,
+                        color: t.textMuted,
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      Mark all as seen
+                    </button>
+                  </div>
+                )}
+              </div>
               {/* Kanban link */}
               <a href="/kanban" style={{
                 background: "none",
