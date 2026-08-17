@@ -91,6 +91,7 @@ export default function LeadsPage() {
   const [referredCount, setReferredCount] = useState(0);
   const [linkedinDmCount, setLinkedinDmCount] = useState(0);
   const [linkedinByDay, setLinkedinByDay] = useState<[string, number][]>([]);
+  const [linkedinDayFilter, setLinkedinDayFilter] = useState<string | null>(null);
   const [stage, setStage]             = useState(() => {
     if (typeof window === "undefined") return "All";
     const fromUrl = new URLSearchParams(window.location.search).get("stage");
@@ -224,7 +225,7 @@ export default function LeadsPage() {
     if (episodeBuilderOnly) q = q.not("episode_builder_submitted_at", "is", null);
     if (affiliateOnly) q = q.eq("is_affiliate", true);
     if (referredOnly) q = q.not("affiliate_code", "is", null);
-    if (linkedinDmOnly) q = q.ilike("notes", "%linkedin_connect_sent%");
+    if (linkedinDmOnly) q = q.ilike("notes", `%linkedin_connect_sent:${linkedinDayFilter ?? ""}%`);
     if (listFilter) q = q.eq("list_name", listFilter);
     if (search) {
       q = q.or(
@@ -235,7 +236,7 @@ export default function LeadsPage() {
     if (data) setContacts(data);
     if (count !== null) setTotal(count);
     setLoading(false);
-  }, [stage, page, pageSize, search, twlrOnly, engagedOnly, gdprOnly, smeOnly, unsubOnly, linkedinOnly, joOnly, episodeBuilderOnly, affiliateOnly, referredOnly, linkedinDmOnly, listFilter, sortField, sortDir]);
+  }, [stage, page, pageSize, search, twlrOnly, engagedOnly, gdprOnly, smeOnly, unsubOnly, linkedinOnly, joOnly, episodeBuilderOnly, affiliateOnly, referredOnly, linkedinDmOnly, linkedinDayFilter, listFilter, sortField, sortDir]);
 
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
@@ -447,7 +448,7 @@ export default function LeadsPage() {
             );
           })}
           {/* TWLR filter — mutually exclusive with stage */}
-          <button onClick={() => { setTwlrOnly(v => !v); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setTwlrOnly(v => !v); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setLinkedinDayFilter(null); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: twlrOnly ? "#F4A98822" : t.surface,
             border: `1px solid ${twlrOnly ? "#F4A98866" : t.border}`,
             color: twlrOnly ? "#C1573B" : t.textMuted,
@@ -457,7 +458,7 @@ export default function LeadsPage() {
           }}>
             TWLR{(() => { const n = twlrOnly ? total : twlrCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{twlrOnly && " ✓"}
           </button>
-          <button onClick={() => { setEngagedOnly(v => !v); setTwlrOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setEngagedOnly(v => !v); setTwlrOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setLinkedinDayFilter(null); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: engagedOnly ? "#7E9AA822" : t.surface,
             border: `1px solid ${engagedOnly ? "#2A607066" : t.border}`,
             color: engagedOnly ? "#2A6070" : t.textMuted,
@@ -467,7 +468,7 @@ export default function LeadsPage() {
           }}>
             Engaged{(() => { const n = engagedOnly ? total : engagedCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{engagedOnly && " ✓"}
           </button>
-          <button onClick={() => { setLinkedinOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setLinkedinOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setLinkedinDayFilter(null); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: linkedinOnly ? "#0A66C222" : t.surface,
             border: `1px solid ${linkedinOnly ? "#0A66C266" : t.border}`,
             color: linkedinOnly ? "#0A66C2" : t.textMuted,
@@ -477,7 +478,7 @@ export default function LeadsPage() {
           }}>
             LinkedIn{(() => { const n = linkedinOnly ? total : linkedinCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{linkedinOnly && " ✓"}
           </button>
-          <button onClick={() => { setGdprOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setLinkedinOnly(false); setSmeOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setGdprOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setLinkedinOnly(false); setSmeOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setLinkedinDayFilter(null); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: gdprOnly ? "#C1573B22" : t.surface,
             border: `1px solid ${gdprOnly ? "#C1573B66" : t.border}`,
             color: gdprOnly ? "#C1573B" : t.textMuted,
@@ -487,7 +488,7 @@ export default function LeadsPage() {
           }}>
             GDPR Hold{(() => { const n = gdprOnly ? total : gdprCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{gdprOnly && " ✓"}
           </button>
-          <button onClick={() => { setSmeOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setSmeOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setLinkedinDayFilter(null); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: smeOnly ? "#7A8A5C22" : t.surface,
             border: `1px solid ${smeOnly ? "#3F503066" : t.border}`,
             color: smeOnly ? "#3F5030" : t.textMuted,
@@ -497,7 +498,7 @@ export default function LeadsPage() {
           }}>
             SME{(() => { const n = smeOnly ? total : smeCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{smeOnly && " ✓"}
           </button>
-          <button onClick={() => { setUnsubOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setUnsubOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setLinkedinDayFilter(null); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: unsubOnly ? "#5A5A5A22" : t.surface,
             border: `1px solid ${unsubOnly ? "#5A5A5A66" : t.border}`,
             color: unsubOnly ? t.textMuted : t.textFaint,
@@ -507,7 +508,7 @@ export default function LeadsPage() {
           }}>
             Unsubscribed{(() => { const n = unsubOnly ? total : unsubCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{unsubOnly && " ✓"}
           </button>
-          <button onClick={() => { setJoOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setJoOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setLinkedinDayFilter(null); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: joOnly ? (dark ? "#E0607A22" : "#8B233222") : t.surface,
             border: `1px solid ${joOnly ? (dark ? "#E0607A66" : "#8B233266") : t.border}`,
             color: joOnly ? (dark ? "#E0607A" : "#8B2332") : t.textMuted,
@@ -517,7 +518,7 @@ export default function LeadsPage() {
           }}>
             LinkedIn Prospects - JO{(() => { const n = joOnly ? total : joCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{joOnly && " ✓"}
           </button>
-          <button onClick={() => { setEpisodeBuilderOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setEpisodeBuilderOnly(v => !v); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setLinkedinDayFilter(null); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: episodeBuilderOnly ? "#C9A24B22" : t.surface,
             border: `1px solid ${episodeBuilderOnly ? "#C9A24B66" : t.border}`,
             color: episodeBuilderOnly ? "#9A6A00" : t.textMuted,
@@ -527,7 +528,7 @@ export default function LeadsPage() {
           }}>
             Episode Builder{(() => { const n = episodeBuilderOnly ? total : episodeBuilderCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{episodeBuilderOnly && " ✓"}
           </button>
-          <button onClick={() => { setAffiliateOnly(v => !v); setReferredOnly(false); setLinkedinDmOnly(false); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setAffiliateOnly(v => !v); setReferredOnly(false); setLinkedinDmOnly(false); setLinkedinDayFilter(null); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: affiliateOnly ? "#E37B5C22" : t.surface,
             border: `1px solid ${affiliateOnly ? "#C1573B66" : t.border}`,
             color: affiliateOnly ? "#C1573B" : t.textMuted,
@@ -537,7 +538,7 @@ export default function LeadsPage() {
           }}>
             Affiliates{(() => { const n = affiliateOnly ? total : affiliateCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{affiliateOnly && " ✓"}
           </button>
-          <button onClick={() => { setReferredOnly(v => !v); setAffiliateOnly(false); setLinkedinDmOnly(false); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setReferredOnly(v => !v); setAffiliateOnly(false); setLinkedinDmOnly(false); setLinkedinDayFilter(null); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: referredOnly ? "#7A8A5C22" : t.surface,
             border: `1px solid ${referredOnly ? "#3F503066" : t.border}`,
             color: referredOnly ? "#3F5030" : t.textMuted,
@@ -547,7 +548,7 @@ export default function LeadsPage() {
           }}>
             Referred{(() => { const n = referredOnly ? total : referredCount; return n > 0 ? <span style={{ marginLeft: 5, opacity: 0.65 }}>({n.toLocaleString()})</span> : null; })()}{referredOnly && " ✓"}
           </button>
-          <button onClick={() => { setLinkedinDmOnly(v => !v); setReferredOnly(false); setAffiliateOnly(false); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
+          <button onClick={() => { setLinkedinDmOnly(v => !v); setLinkedinDayFilter(null); setReferredOnly(false); setAffiliateOnly(false); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setJoOnly(false); setUnsubOnly(false); setEpisodeBuilderOnly(false); setListFilter(""); setStage("All"); setPage(0); }} style={{
             background: linkedinDmOnly ? "#3A5F8A22" : t.surface,
             border: `1px solid ${linkedinDmOnly ? "#2A4A6B66" : t.border}`,
             color: linkedinDmOnly ? "#2A4A6B" : t.textMuted,
@@ -560,7 +561,7 @@ export default function LeadsPage() {
           {listOptions.length > 0 && (
             <select
               value={listFilter}
-              onChange={e => { setListFilter(e.target.value); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setUnsubOnly(false); setJoOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setStage("All"); setPage(0); }}
+              onChange={e => { setListFilter(e.target.value); setTwlrOnly(false); setEngagedOnly(false); setGdprOnly(false); setSmeOnly(false); setLinkedinOnly(false); setUnsubOnly(false); setJoOnly(false); setEpisodeBuilderOnly(false); setAffiliateOnly(false); setReferredOnly(false); setLinkedinDmOnly(false); setLinkedinDayFilter(null); setStage("All"); setPage(0); }}
               style={{
                 background: t.surface,
                 border: `1px solid ${listFilter ? t.accent : t.border}`,
@@ -580,12 +581,22 @@ export default function LeadsPage() {
         </div>
 
         {linkedinDmOnly && linkedinByDay.length > 0 && (
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14, fontSize: "0.75rem", color: t.textMuted }}>
-            {linkedinByDay.map(([day, n]) => (
-              <span key={day} style={{ background: t.surfaceAlt, border: `1px solid ${t.border}`, borderRadius: 6, padding: "3px 9px" }}>
-                {new Date(day + "T00:00:00").toLocaleDateString("es-BO", { day: "2-digit", month: "short" })}: <b style={{ color: t.text }}>{n}</b>
-              </span>
-            ))}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14, fontSize: "0.75rem" }}>
+            {linkedinByDay.map(([day, n]) => {
+              const active = linkedinDayFilter === day;
+              return (
+                <button key={day}
+                  onClick={() => { setLinkedinDayFilter(active ? null : day); setPage(0); }}
+                  style={{
+                    background: active ? "#3A5F8A22" : t.surfaceAlt,
+                    border: `1px solid ${active ? "#2A4A6B66" : t.border}`,
+                    color: active ? "#2A4A6B" : t.textMuted,
+                    borderRadius: 6, padding: "3px 9px", cursor: "pointer", fontFamily: "inherit", fontSize: "0.75rem",
+                  }}>
+                  {new Date(day + "T00:00:00").toLocaleDateString("es-BO", { day: "2-digit", month: "short" })}: <b style={{ color: active ? "#2A4A6B" : t.text }}>{n}</b>{active && " ✓"}
+                </button>
+              );
+            })}
           </div>
         )}
 
