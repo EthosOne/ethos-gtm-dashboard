@@ -90,6 +90,7 @@ export default function LeadsPage() {
   const [affiliateCount, setAffiliateCount] = useState(0);
   const [referredCount, setReferredCount] = useState(0);
   const [linkedinDmCount, setLinkedinDmCount] = useState(0);
+  const [linkedinByDay, setLinkedinByDay] = useState<[string, number][]>([]);
   const [stage, setStage]             = useState(() => {
     if (typeof window === "undefined") return "All";
     const fromUrl = new URLSearchParams(window.location.search).get("stage");
@@ -270,6 +271,15 @@ export default function LeadsPage() {
       .then(({ count }) => setReferredCount(count ?? 0));
     supabase.from("contacts").select("*", { count: "exact", head: true }).ilike("notes", "%linkedin_connect_sent%")
       .then(({ count }) => setLinkedinDmCount(count ?? 0));
+    supabase.from("contacts").select("notes").ilike("notes", "%linkedin_connect_sent%").limit(2000)
+      .then(({ data }) => {
+        const tally: Record<string, number> = {};
+        for (const row of data ?? []) {
+          const m = (row.notes ?? "").match(/linkedin_connect_sent:(\d{4}-\d{2}-\d{2})/);
+          if (m) tally[m[1]] = (tally[m[1]] ?? 0) + 1;
+        }
+        setLinkedinByDay(Object.entries(tally).sort((a, b) => b[0].localeCompare(a[0])));
+      });
   }, []);
 
   // Refresh pill counts periodically (every 60s) so they don't drift from
@@ -568,6 +578,16 @@ export default function LeadsPage() {
             </select>
           )}
         </div>
+
+        {linkedinDmOnly && linkedinByDay.length > 0 && (
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14, fontSize: "0.75rem", color: t.textMuted }}>
+            {linkedinByDay.map(([day, n]) => (
+              <span key={day} style={{ background: t.surfaceAlt, border: `1px solid ${t.border}`, borderRadius: 6, padding: "3px 9px" }}>
+                {new Date(day + "T00:00:00").toLocaleDateString("es-BO", { day: "2-digit", month: "short" })}: <b style={{ color: t.text }}>{n}</b>
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Table */}
         <div style={{ background: t.surface, borderRadius: 14, border: `1px solid ${t.border}`, overflow: "hidden" }}>
