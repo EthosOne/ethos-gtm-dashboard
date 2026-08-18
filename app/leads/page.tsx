@@ -71,6 +71,7 @@ function linkedinStatus(notes: string | null): { label: string; bg: string; text
   if (!notes) return null;
   if (notes.includes("linkedin_replied:")) return { label: "Respondió", bg: "#7A8A5C22", text: "#3F5030" };
   if (notes.includes("linkedin_dm_sent:")) return { label: "DM enviado", bg: "#7E9AA822", text: "#3A6070" };
+  if (notes.includes("linkedin_accepted:")) return { label: "Aceptó", bg: "#E8B66A22", text: "#8A5A00" };
   if (notes.includes("linkedin_connect_sent:")) return { label: "Conexión enviada", bg: "#9D9BAA22", text: "#5A5870" };
   return null;
 }
