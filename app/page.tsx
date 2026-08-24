@@ -435,6 +435,22 @@ export default function Dashboard() {
               }}>
                 Pipeline →
               </a>
+              {/* Comment Drafts link */}
+              <a href="/comment-drafts" style={{
+                background: "none",
+                border: `1px solid ${t.border}`,
+                color: t.textMuted,
+                borderRadius: 999,
+                padding: "6px 14px",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                textDecoration: "none",
+                letterSpacing: "0.04em",
+                transition: "border-color 0.15s, color 0.15s",
+                fontFamily: "inherit",
+              }}>
+                Comments →
+              </a>
               <a href="/admin" style={{
                 background: "none",
                 border: `1px solid ${t.border}`,
