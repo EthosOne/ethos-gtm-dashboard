@@ -50,6 +50,18 @@ export default function CommentDraftsPage() {
   const [dark, setDark] = useState(false);
   const t = dark ? DARK : LIGHT;
 
+  useEffect(() => {
+    const saved = localStorage.getItem("ethos-theme");
+    if (saved === "dark") setDark(true);
+  }, []);
+
+  const toggleTheme = () => {
+    setDark((prev) => {
+      localStorage.setItem("ethos-theme", !prev ? "dark" : "light");
+      return !prev;
+    });
+  };
+
   const [drafts, setDrafts] = useState<CommentDraft[]>([]);
   const [tab, setTab] = useState<(typeof TABS)[number]>("pending");
   const [loading, setLoading] = useState(true);
@@ -94,10 +106,10 @@ export default function CommentDraftsPage() {
             </p>
           </div>
           <button
-            onClick={() => setDark((d) => !d)}
-            style={{ background: t.toggleBg, color: t.toggleText, border: "none", borderRadius: 999, padding: "6px 14px", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer" }}
+            onClick={toggleTheme}
+            style={{ background: t.toggleBg, color: t.toggleText, border: "none", borderRadius: 999, padding: "6px 14px", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", transition: "background 0.3s, color 0.3s", fontFamily: "inherit" }}
           >
-            {dark ? "☀️" : "🌙"}
+            <i className={dark ? "bi bi-sun-fill" : "bi bi-moon-fill"} style={{ marginRight: 5, color: t.toggleText }} />{dark ? "Light" : "Dark"}
           </button>
         </div>
 
