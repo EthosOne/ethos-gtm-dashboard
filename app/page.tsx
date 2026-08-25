@@ -107,6 +107,7 @@ export default function Dashboard() {
   const [ga4, setGa4] = useState<{ activeUsers30d: number; demoBookedEvents30d: number; ethosoneSessions30d: number; twlrSessions30d: number; ethosoneUsers30d: number; twlrUsers30d: number } | null>(null);
   const [newDemos, setNewDemos] = useState<{ id: number; name: string; company: string | null; demo_scheduled_at: string }[]>([]);
   const [bellOpen, setBellOpen] = useState(false);
+  const [pendingCommentDrafts, setPendingCommentDrafts] = useState(0);
 
   // persist theme
   useEffect(() => {
@@ -133,6 +134,22 @@ export default function Dashboard() {
     const channel = supabase
       .channel("pillars-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "pillars" }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  useEffect(() => {
+    async function loadPendingCommentDrafts() {
+      const { count } = await supabase
+        .from("comment_drafts")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      setPendingCommentDrafts(count ?? 0);
+    }
+    loadPendingCommentDrafts();
+    const channel = supabase
+      .channel("comment-drafts-badge")
+      .on("postgres_changes", { event: "*", schema: "public", table: "comment_drafts" }, loadPendingCommentDrafts)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
@@ -434,6 +451,37 @@ export default function Dashboard() {
                 fontFamily: "inherit",
               }}>
                 Pipeline →
+              </a>
+              {/* Comment Drafts link */}
+              <a href="/comment-drafts" style={{
+                background: "none",
+                border: `1px solid ${t.border}`,
+                color: t.textMuted,
+                borderRadius: 999,
+                padding: "6px 14px",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                textDecoration: "none",
+                letterSpacing: "0.04em",
+                transition: "border-color 0.15s, color 0.15s",
+                fontFamily: "inherit",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}>
+                Comments →
+                {pendingCommentDrafts > 0 && (
+                  <span style={{
+                    background: t.accent,
+                    color: "#363541",
+                    borderRadius: 999,
+                    padding: "1px 7px",
+                    fontSize: "0.7rem",
+                    fontWeight: 700,
+                  }}>
+                    {pendingCommentDrafts}
+                  </span>
+                )}
               </a>
               <a href="/admin" style={{
                 background: "none",
