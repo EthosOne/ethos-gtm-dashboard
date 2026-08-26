@@ -436,6 +436,22 @@ export default function Dashboard() {
               }}>
                 Analytics →
               </a>
+              {/* GTM Trends link */}
+              <a href="/gtm-trends" style={{
+                background: "none",
+                border: `1px solid ${t.border}`,
+                color: t.textMuted,
+                borderRadius: 999,
+                padding: "6px 14px",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                textDecoration: "none",
+                letterSpacing: "0.04em",
+                transition: "border-color 0.15s, color 0.15s",
+                fontFamily: "inherit",
+              }}>
+                Trends →
+              </a>
               {/* Pipeline link */}
               <a href="/leads" style={{
                 background: "none",
