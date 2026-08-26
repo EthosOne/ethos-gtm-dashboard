@@ -466,7 +466,7 @@ export default function ContactDrawer({ contact, isNew, dark, onClose, onSaved, 
               </div>
               {contact.demo_meeting_url && (
                 <a href={contact.demo_meeting_url} target="_blank" rel="noreferrer" style={{ fontSize: "0.75rem", color: "#9A6A00", textDecoration: "underline" }}>
-                  Ver reunión →
+                  View meeting →
                 </a>
               )}
             </div>
