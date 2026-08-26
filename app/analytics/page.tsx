@@ -101,17 +101,17 @@ export default function AnalyticsPage() {
       since.setDate(since.getDate() - 6);
       const { data: signals } = await supabase
         .from("contacts")
-        .select("last_event_at")
+        .select("beehiiv_last_event_at")
         .eq("beehiiv_engaged", true)
-        .gte("last_event_at", since.toISOString());
+        .gte("beehiiv_last_event_at", since.toISOString());
       const dayMap: Record<string, number> = {};
       for (let i = 0; i < 7; i++) {
         const d = new Date(); d.setDate(d.getDate() - (6 - i));
         dayMap[d.toISOString().slice(0, 10)] = 0;
       }
       (signals ?? []).forEach(r => {
-        if (r.last_event_at) {
-          const day = (r.last_event_at as string).slice(0, 10);
+        if (r.beehiiv_last_event_at) {
+          const day = (r.beehiiv_last_event_at as string).slice(0, 10);
           if (day in dayMap) dayMap[day]++;
         }
       });
@@ -173,6 +173,11 @@ export default function AnalyticsPage() {
               borderRadius: 999, padding: "6px 14px", fontSize: "0.78rem", fontWeight: 600,
               textDecoration: "none", letterSpacing: "0.04em",
             }}>Kanban</Link>
+            <Link href="/gtm-trends" style={{
+              background: "none", border: `1px solid ${t.border}`, color: t.textMuted,
+              borderRadius: 999, padding: "6px 14px", fontSize: "0.78rem", fontWeight: 600,
+              textDecoration: "none", letterSpacing: "0.04em",
+            }}>Trends</Link>
             <Link href="/leads" style={{
               background: "none", border: `1px solid ${t.border}`, color: t.textMuted,
               borderRadius: 999, padding: "6px 14px", fontSize: "0.78rem", fontWeight: 600,
