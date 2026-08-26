@@ -29,7 +29,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/affiliate") ||
     request.nextUrl.pathname.startsWith("/api/affiliate") ||
     request.nextUrl.pathname.startsWith("/api/newsletter-stats") ||
-    request.nextUrl.pathname.startsWith("/api/newsletter-posts");
+    request.nextUrl.pathname.startsWith("/api/newsletter-posts") ||
+    request.nextUrl.pathname.startsWith("/api/gtm-snapshot");
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
